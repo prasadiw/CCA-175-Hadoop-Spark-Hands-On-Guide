@@ -1,0 +1,341 @@
+-------------Extracting avro schema from avro data using avro tools-----------------------------------------------
+•	Avro data is represented in json format.
+•	Avro can understand xml format
+•	Avro uses json format to store data in avro files.
+•	Avro schema: representation of data in an avro file
+***
+1.	extract avro schema from an avro file using avro-tool
+1.	Create a directory called avro in /home/cloudera
+2.	Go to that directory location in hadoop and run command to Import all tables to the below location as avro files
+sqoop import-all-tables 
+  -m 4 
+  --connect "jdbc:mysql://quickstart.cloudera:3306/retail_db" 
+  --username=retail_dba 
+  --password=cloudera 
+  --as-avrodatafile 
+  --warehouse-dir=/user/cloudera/sqoop_import
+
+It will copy data to HDFS location /user/cloudera/sqoop_import and generate metadata files locally using avsc extension in the location where ever sqoop import-all-tables is ran
+
+3.	Get/copy the required avro files in hdfs into the current local folder
+Hadoop fs –get /user/hive/warehouse/retail_stage/departments
+
+Verify the file is copied in to current local directory:
+ls –ltr
+along with the data file, it has created so many files including java and avsc files.
+
+
+4.	To extract schema using avro tool
+	Type : avro-tools
+Display all the available avro-tool commands
+	Commands:
+•	getmeta: prints out the metadata of an avro data file
+•	getschema: prints out the schema of an avro data file
+	get metadata of departments avro data
+goto departments local directory and reun below command;
+[cloudera@quickstart departments]$
+avro-tools getmeta part-m-00000.avro
+
+	get schema of departments avro data
+goto departments local directory and reun below command;
+[cloudera@quickstart departments]$
+avro-tools getschema part-m-00000.avro
+•	get scema from a avro file in hdfs:
+avro-tools getschema hdfs://quickstart.cloudera:8020/user/cloudera/cca175/module_avro/employee/part-m-00000.avro
+
+o/p: is in jason format
+
+2.	Convert avro file to jason
+Since avro file in binary format and its not readable, we can convert it in to json format and read it.
+avro-tools tojson part-m-ooooo.avro
+
+redirect the output json data to a new jason file:
+avro-tools tojson part-m-ooooo.avro > deartments.json
+
+verify data:
+cat departments.json
+
+in hdfs:
+avro-tools getschema hdfs://quickstart.cloudera:8020/user/cloudera/cca175/module_avro/employee/part-m-00000.avro> employee.avsc
+*this employee.avsc file is created in local /home/cloudera location.
+
+3.	Convert json file to avro format
+•	When convert json file to avro, we have to give the schema file as well.
+o	Create schema file:
+avro-tools getschema part-m-00000.avro > departments.avsc
+o	Convert department.json file in to avro format
+avro-tools fromjson deartments.json  --schema-file departments.avsc
+
+
+---------create table in hive metastore using avro---------------------------------------------------
+
+4.	Create a table by directing to file: (avro.schema.url)
+•	hive tables can be created by pointing in to .avsc (avro) file in hdfs
+o	copy all the .avsc files in local avro directory in to hdfs(these are the avro data schema files)
+hadoop fs –copyFromLocal *.avsc /user/cloudera/retail_stage
+
+if avro schemas are copied to /home/cloudera directory instead of /home/cloudera/avro directory, below commands should be run
+hadoop fs -mkdir /user/cloudera/avsc_files
+hadoop fs -put ~/*.avsc /user/cloudera/avsc_files
+
+o	go to hive 
+here we are using external table bcz, if we use managed table, if we drop the table the data will be gone. So inorder to keep data in hdfs we have to create a external table so in that case table is deleted only from hive.
+	create external table
+use retail_stage;
+
+CREATE EXTERNAL TABLE categories
+ROW FORMAT SERDE 'org.apache.hadoop.hive.serde2.avro.AvroSerDe'
+STORED AS INPUTFORMAT 'org.apache.hadoop.hive.ql.io.avro.AvroContainerInputFormat'
+OUTPUTFORMAT 'org.apache.hadoop.hive.ql.io.avro.AvroContainerOutputFormat'
+LOCATION 'hdfs:///user/hive/warehouse/retail_stage.db/categories'
+TBLPROPERTIES ('avro.schema.url'='hdfs://quickstart.cloudera/user/cloudera/retail_stage/sqoop_import_categories.avsc');
+
+
+5.	Create a table by  a dynamic input of avro data: (avro.schema.literal)
+Format:
+CREATE EXTERNAL TABLE departments
+ROW FORMAT SERDE 'org.apache.hadoop.hive.serde2.avro.AvroSerDe'
+STORED AS INPUTFORMAT 'org.apache.hadoop.hive.ql.io.avro.AvroContainerInputFormat'
+OUTPUTFORMAT 'org.apache.hadoop.hive.ql.io.avro.AvroContainerOutputFormat'
+LOCATION 'hdfs:///user/hive/warehouse/retail_stage.db/departments'
+TBLPROPERTIES ('avro.schema.literal'= '<avro schema>'
+
+CREATE EXTERNAL TABLE departments
+ROW FORMAT SERDE 'org.apache.hadoop.hive.serde2.avro.AvroSerDe'
+STORED AS INPUTFORMAT 'org.apache.hadoop.hive.ql.io.avro.AvroContainerInputFormat'
+OUTPUTFORMAT 'org.apache.hadoop.hive.ql.io.avro.AvroContainerOutputFormat'
+LOCATION 'hdfs:///user/hive/warehouse/retail_stage.db/departments'
+TBLPROPERTIES ('avro.schema.literal'= '{
+"type" : "record",
+  "name" : "departments",
+  "doc" : "Sqoop import of departments",
+  "fields" : [ {
+    "name" : "department_id",
+    "type" : [ "null", "int" ],
+    "default" : null,
+    "columnName" : "department_id",
+    "sqlType" : "4"
+  }, {
+    "name" : "department_name",
+    "type" : [ "null", "string" ],
+    "default" : null,
+    "columnName" : "department_name",
+    "sqlType" : "12"
+  } ],
+  "tableName" : "departments"
+  }')
+
+
+Verify results:
+Select* from departments
+
+
+
+6.	Create table In impala using avro files.
+Start impala: impala-shell
+Show database;
+Use retail_stage;
+Show tables;
+
+**SERDE information should be different than Hive.
+CREATE EXTERNAL TABLE categories
+STORED AS AVRO
+LOCATION 'hdfs:///user/hive/warehouse/retail_stage.db/categories'
+TBLPROPERTIES ('avro.schema.url'='hdfs://quickstart.cloudera/user/cloudera/retail_stage/sqoop_import_categories.avsc');
+
+•	Cretae table using dynamic input-impala
+create EXTERNAL TABLE salary
+STORED AS AVRO
+LOCATION '/user/hive/warehouse/retail_stage.db/SALARY'
+TBLPROPERTIES ('avro.schema.literal'='{
+"type" : "record",
+"name" : "SALARY",
+"doc" : "Sqoop import of SALARY",
+"fields" : [ {
+"name" : "id",
+"type" : [ "null", "int" ],
+"default" : null,
+"columnName" : "id",
+"sqlType" : "4"
+}, {
+"name" : "salary",
+"type" : [ "null", "int" ],
+"default" : null,
+"columnName" : "salary",
+"sqlType" : "4"
+} ],
+"tableName" : "SALARY" }')
+
+•	giving column names is optional in CREATE TABLE clause when you pass avro.schema.url. In case if you want to give column names different from avro schema, you can do so by giving names in CREATE TABLE clause. so if we specify column names in the creating table command it will replace the tblproperties avro schema.
+
+-------------------------- partitioning in Hive with Avro file format------------------------------------------------------------
+
+Partitioning table with data in avro file format
+7.	Get data from orders where the order date is in 2014/01 month
+•	Column names are given in the avro schema. So in the hive cretae table command, we don't have to specify the column names.
+•	Partitions should not be defined in the avro schema file.
+
+Hive
+Use retail_stage;
+Show tables;
+Desc orders;
+
+Select order_status, count(1) from orders where from_unixtime(case(substr(order_date, 1, 10) as int)) like '2014-01%' group by order_status;
+
+*create orders_part_avro.avsc according to the itversity video.(82, time 10m)
+cp sqoop_import_orders.avsc orders_part.avsc
+•	Since we are partitoning the table, we should add partition table in the schema and the schema structure is different.
+•	Should not specify the partition column in the schema
+Content of orders_part_avro.avc file:
+{
+  "type" : "record",
+  "name" : "orders_part_avro",
+  "doc" : "Hive Avro partitioned table orders_part_avro",
+  "fields" : [ {
+    "name" : "order_id",
+    "type" : [ "null", "int" ],
+    "default" : null
+  }, {
+    "name" : "order_date",
+    "type" : [ "null", "long" ],
+    "default" : null
+  }, {
+    "name" : "order_customer_id",
+    "type" : [ "null", "int" ],
+    "default" : null
+  }, {
+    "name" : "order_status",
+    "type" : [ "null", "string" ],
+    "default" : null
+  } ],
+  "tableName" : "orders_part_avro"
+}
+
+•	Then copy the schema file to hdfs: /user/cloudera/retail_stage
+
+Create table;
+CREATE TABLE orders_part_avro (
+order_id int,
+order_date bigint,
+order_customer_id int,
+order_status string
+)
+PARTITIONED BY (order_month string)
+STORED AS AVRO
+LOCATION 'hdfs:///user/hive/warehouse/retail_stage.db/orders_part_avro'
+TBLPROPERTIES ('avro.schema.url'='hdfs://quickstart.cloudera/user/cloudera/retail_stage/orders_part_avro.avsc');
+
+Verify:
+Select * from orders_part_avro
+dfs –ls '<table location>'
+
+o/p: no data
+
+
+8.	Adding/Creating partition manually:
+alter table orders_part_avro add partition (order_month='2014-01');
+
+dfs –ls '<table location>'
+
+o/p: directory is created for the cretaed partition.
+
+9.	Insert data in to the partition: manually
+Have to apply function with filter criteria to create partirions. Otherwise, since hive is schema on read it writes all data to partitions and on read,only it gives errors. 
+This is called dynamic partirioning. While running the query it looks at the partition and insert data.
+
+insert into table orders_part_avro partition (order_month='2014-01')
+select * from orders where from_unixtime(cast(substr(order_date, 1, 10) as int)) like '2014-01%';
+
+here, we have to cretae partirons and insert data in to each partition 1 by 1 manually.
+So need dynamic partitioning.
+
+
+10.	Insert data in to the partition: dynamic partitioning
+-- Drop table and recreate to test dynamic insert
+-- Dynamic insert
+set hive.exec.dynamic.partition.mode=nonstrict;
+•	Set  no of partitioning to 1000 if give errors related to that.
+
+insert into table orders_part_avro partition (order_month)
+select order_id, order_date, order_customer_id, order_status,
+substr(from_unixtime(cast(substr(order_date, 1, 10) as int)), 1, 7) order_month from orders;
+
+•	after partitionong select and other quering related to order_month should give results quickly
+
+
+
+-------------------evolve an avro schema by changing JSON files-------------------------------------------
+
+•	Avro schema evolution in hive and scala: changing avro schema using hive and impala
+•	Eg: adding columns to the avro file 
+In hive this is challenging bcz it's not designed to changing schema.
+
+U have data in /user/hive/warehouse/retail_stage.db/
+
+U have avro directory and core .avsc files in to hdfs /user/cloudera/retail_stage
+
+Create all tables in the retail_stage db.
+
+** in impala, to refresh the tables and metadata, should run;
+Invalidate metadata;
+ 
+11.	Eg: use departments.
+1.	Make a copy of sqoop_imort_deoartment.avsc file and change the schema as mentioned in the itversity video 83(8 min).
+{
+  "type" : "record",
+  "name" : "departments",
+  "doc" : "Sqoop import of departments",
+  "fields" : [ {
+    "name" : "department_id",
+    "type" : [ "null", "int" ],
+    "default" : null,
+    "columnName" : "department_id",
+    "sqlType" : "4"
+  },{
+    "name" : "department_mgr",
+    "type" :  "int",
+    "default" : null,
+    "columnName" : "department_mgr_id",
+    "sqlType" : "4"
+  },{
+    "name" : "department_name",
+    "type" : [ "null", "string" ],
+    "default" : null,
+    "columnName" : "department_name",
+    "sqlType" : "12"
+  },{
+    "name" : "department_loc",
+    "type" : [ "null", "string" ],
+    "default" : null,
+    "columnName" : "department_loc",
+    "sqlType" : "12"
+  } ],
+  "tableName" : "departments"
+}
+
+When defining column data types, we have to refer apache avro documentation to apply compatible data types.
+2.	    "type" : [ "null", "int" ] called a union type. We can only define union type with null. Eg: Cannot define union types as int and string.
+3.	Copy the new file in to hdfs location: /user/cloudera/retail_stage
+Hadoop fs –put <local file path> <hdfs file path>
+4.	We have to apply default values to new columns otherwise it will fail when reading the data  because those values are empty.
+
+
+12.	Insert data to new tables;
+In hive, 
+Insert into table departments values (11000,null,'testing', null);
+o/p: fail. Bcz department_manager_id does not take null values according to the schema we defined.
+
+Insert into table departments values (11000,11000,'testing', null);
+o/p: success
+
+new file is created in hdfs db file
+
+** IMPALA currently cannot insert data in to avro tables from impala shell
+
+13.	Create a table with parquet data
+create table myparquettable (a INT, b INT)
+STORED AS PARQUET
+LOCATION ‘/tmp/data’;
+
+insert overwrite table myparquettable select * from mycsvtable;
+
