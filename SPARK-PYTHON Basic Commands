@@ -1,0 +1,956 @@
+1.	Launch pythan spark interface
+pyspark
+
+2.	Exit: ctrl+d
+3.	Run select * query in hiveContext()
+Stp1 : import SQLContext and hiveContext and all the packages
+from pyspark.sql import SQLContext
+from pyspark.sql import HiveContext
+
+stp2: set sqlContext
+sqlContext = HiveContext(sc)
+
+Stp3: create spark RDD to collect all data from departments table in to hiveContext  instance
+depts = sqlContext.sql("select * from departments")
+
+Stp4: write for loop to iterate through RDD list and collect
+**pythan doesn’t have {} to indent. Use space to indent
+for rec in depts.collect():
+	print(rec)
+	<more logic for the same for loop>
+**Hit enter without space if you want to execute the for loop
+
+4.	Connect to a remote jdbc datatabs eserver to write queries on SQLContext and HiveContext
+Stp1: set classpath
+Way 1: run pyspark with driver class path
+pyspark - -driver-class-path "/usr/share/javamysql-connector-java.jar"
+
+Way 2: set environment variable with os.environ
+os.environ['SPARK_CLASSPATH'] = "/usr/share/javamysql-connector-java.jar"
+
+To get/verify  the class path, if u have sudo permission, run below command:
+sudo find / -name "mysql-connector*.jar"
+
+stp2: import SQLContext
+from pyspark.sql import SQLContext
+
+stp3: create SQLContext instance
+sqlContext = SQLContext(sc)
+
+stp4: create variable to store jdbc url
+jdbcurl = "jdbc:mysql://quickstart.cloudera:3306/retail_db?user=retail_dba&password=cloudera"
+
+stp5: connect load the db using df query  and execute print and count operations
+df = sqlContext.load(source="jdbc", url=jdbcurl, dbtable=departments)
+
+print:
+for rec in df.collect()
+	print(rec)
+
+count records in departments table:
+df.count()
+
+5.	Reading a text file in hdfs. Creating the RDD
+dataRDD = sc.textFile("/user/cloudera/sqoop_import_departments")
+read:
+for i data.collect()
+	print(i)
+
+6.	Saving data to a text file in hdfs
+dataRDD.saveAsTextFile("/user/cloudera/pySpark/departments ")
+
+7.	Declaring and assign values to a variable
+
+Str = "hello,word,how,are,you"
+
+8.	Split the string. Out put will be an array of strings.
+Str.split(",")
+
+o/p: ['hello','word','how','are','you']
+
+9.	If you want to split the string to 2 elements in the array by making 1st string as 1 elemnt and rest as the 2nd elemnt
+
+Str.split(",",1)
+o/p: ['hello', 'word,how,are,you']
+
+10.	If you want to split the string to 3 elements in the array by making 1st  and 2nd strings as 1st and 2nd elemnts  and rest as the 2nd elemnt
+
+Str.split(",",2)
+o/p: ['hello', 'world', 'how,are,you']
+
+11.	Map function:  lanbda function is executed inside the map transformation.
+12.	Create a map RDD with null key and whole record as value
+Mapper = dataRDD.map(lambda x: (None,x))
+
+Print mapper:
+For i in mapper.collect()
+<tab indent>print i
+<enter>
+o/p:
+(None, u'2,Fitness')
+(None, u'3,Footwear')
+(None, u'4,Apparel')
+(None, u'5,Golf')
+(None, u'6,Outdoors')
+(None, u'7,Fan Shop')
+(None, u'10,physics')
+(None, u'11,Chemistry')
+(None, u'12,Fathematics')
+(None, u'13,science')
+(None, u'14,Engineering')
+
+13.	Create a map RDD with key value pair split by (",", 1)
+*here, the  tuple is created by seperating the data set in to 2 where the 1st element split by  "," is one value and the rest of the record as the 2nd value.
+Mapper = dataRDD.map(lambda x: tuple(x.split(",",1)))
+
+Print mapper:
+For i in mapper.collect()
+<tab indent>print i
+<enter>
+
+Mapper = dataRDD.map(lambda x: tuple(x.split(",",2)))
+Here, one record is seperated in to 3 values as: 1st 2 values split by "," as 1st 2 values and the rest of the record as the 3rd value.
+Here, the 2(parameter) is the no of elemnts retrieved from the record and the rest is retrieved as another additional record.
+o/p:
+u'is', u'Spark Learning Session')
+(u'Spark', u'is', u'faster than MapReduce')
+
+
+
+
+-------------------sequence file------------------------------------------------------------------------
+
+
+Text file: each line has a record
+Sequence file data type:  each line doesn't represent a record. Has metadata key and value: 
+data = sc.textFile("/user/cloudera/sqoop_import_departments")
+read:
+for i data.collect()
+	print(i)
+14.	Lambda: represent anonymous  function. 
+(Lambda x , (<return type of the transformation which is going to apply>))
+
+15.	Sequence file data is saved in binary format
+
+16.	Save as sequence file:
+dataRDD.map(lambda x: (None,x)).saveAsSequenceFile("/user/cloudera/pyspark/departmentsSeq")
+
+dataRDD.map(lambda x: tuple(x.split(",",1))). saveAsSequenceFile("/user/cloudera/pyspark/departmentsSeq2")
+
+17.	Read a sequence file
+Don’t need to specify the type of key, value combination of the output. It will be automatically done by the pyspark.
+**to save, the outut file should have data with key-value pair format. Otherwise, it will give an exception.
+
+Without specifying data type of key, value:
+Data = sc.sequenceFile("/user/cloudera/pyspark/departmentsSeq ")
+
+With specifying data type of key,value:
+Data2 = sc.sequenceFile("/user/cloudera/pyspark/departmentsSeq", "org.apache.hadoop.io.IntWritable", "org.apache.hadoop.io.Text")
+
+Read the file:
+For i data.collect():
+	Print(line)
+
+
+18.	Common save as a method to save data in to hdfs as any type of file.
+(text/seq/etc)
+Eg: save as sequence file
+
+Format: rdd.map(lambda rec: <anonymous function>).saveAsAPIHadoopFile(path, <class of the file format>, <input file type>, <output file type>)
+
+dataRDD.map(lambda x: tuple(x.split(",",1))).saveAsAPIHadoopFile(path, "org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat",keyClass="org.apache.hadoop.io.Text",valueClass="org.apache.hadoop.io.Text")
+
+here, the key also written as a text bcz its read as a string. When writing we have to specify as string.
+
+19.	Common read method to sread data from hdfs as any type of file.
+(text/seq/etc)
+Eg: save as sequence file
+
+Format: rdd.map(lambda rec: <anonymous function>).NewAPIHadoopFile(path, <class of the file format>, <input file type>, <output file type>)
+
+dataRDD.map(lambda x: tuple(x.split(",",1))).saveAsAPIHadoopFile(path, "org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat",keyClass="org.apache.hadoop.io.IntWritable",valueClass="org.apache.hadoop.io.Text")
+
+20.	Read data from hive context
+Stp1 : imort hive context
+from pysark.sql imort HiveContext
+
+sqlContext = HiveContext(sc)
+
+**before run this, verify the table in hive
+
+•	write query to default database
+data = sqlContext.sql("select * from departments")
+
+after running this query, a collection is cretaed with the result.
+
+Reading the output as rows:
+For i in data.collect():
+	Print(i)
+
+Reading output as values in a particular column:
+Foe i in data .collect()
+	Print(i.department_id)
+•	write query to another database(sqoop_import) other than default DB
+data = sqlContext.sql(select * from sqoop_import .departments)
+
+21.	write data in to hive
+create a table in hive
+data = sqlContext.sql("create table departmentsTest as select* from departments")
+
+22.	reading JASON (java Script Object Notation)data from HDFS
+•	JASON has key-value pair data
+1.	Create SQL Context
+From pyspark import SQLContext
+sqlContext = SQLContext(sc)
+2.	Read the json file
+departmentsJson = sqlContext.jsonFile("/user/cloudera/pyspark/departments.json")
+
+this created the collection as departmentsJson.
+
+3.	Create a temp table with any name to read the data.
+Have to create a temp table to read a table created from sql context.
+departmentsJson.registerTempTable("dJson")
+
+4.	Write the query and read the output
+Data = sqlContext.sql("select * from djson")
+	for i in data.collect():
+	print(i)
+23.	Write JSON file in to hdfs
+departmentsJson.toJSON().saveAsTextFile("/user/cloudera/pyspark/departmentsJson")
+
+
+24.	Transformations:
+Map(), filter(), etc: actually do the function
+
+25.	Actions:
+Reduce(), collect(), count(): count no of elements in the list, etc:Make the program execute for you.
+
+26.	Wordcount program: count the occurance of each word available in the given input file.
+Val data = sc.textFile("pyspark/wordCount")
+
+Stp1: cretae data flat map RDD
+dataflatmap = data.flatMap(lambda x: x.split(" "))
+
+verify o/p:
+for r in dataflatmap.collect();
+	print(r)
+	stp2: create a key value pariRDD using map to make 1 as value in each record.
+	datamap = dataflatmap.map(lambda x: (x, 1))
+	verify o/p:
+for r in datamap.collect();
+	print(r)
+	stp3: group each same word and get the sum of them using reduceByKey() function 
+	wordcount = datamap.reduceByKey(lambda x,y: x+y)
+	verify o/p:
+for r in wordcount.collect();
+	print(r)
+
+------------------------Joining  2 data sets--------------------------------------------------------------
+•	Its reccomended to join with the follow format:
+largerDataSet.join(smallerDataSet)
+•	Join will generate a key-value pair map where the key : common key which we use to join by and value: joined result. We can read key and value as 2 tules and value has nested tuples in side it.
+
+orders desc:
+Field             | Type        | Null | Key | Default | Extra          |
++-------------------+-------------+------+-----+---------+----------------+
+| order_id          | int(11)     | NO   | PRI | NULL    | auto_increment |
+| order_date        | datetime    | NO   |     | NULL    |                |
+| order_customer_id | int(11)     | NO   |     | NULL    |                |
+| order_status      | varchar(45) | NO   |     | NULL    |                |
++-------------------+-------------+------+-----+---------+----------------
+
+Order_Items desc
+
+order_item_id            | int(11)    | NO   | PRI | NULL    | auto_increment |
+| order_item_order_id      | int(11)    | NO   |     | NULL    |                |
+| order_item_product_id    | int(11)    | NO   |     | NULL    |                |
+| order_item_quantity      | tinyint(4) | NO   |     | NULL    |                |
+| order_item_subtotal      | float      | NO   |     | NULL    |                |
+| order_item_product_price | float      | NO   |     | NULL    |                |
+
+
+27.	Get the revenue and no of orders from order_items on daily basis
+1.	Cretae pair RDD s by making order_id as the key and the rst of the record as value
+2.	Join data sets by order_id
+3.	Extarct required data from the joined data set
+4.	Apply aggregate functions to get the final output
+
+----------- get the revenue on daily basis----------------------------------------
+Stp1: create rdd by retrieving data from hdfs
+ordersRDD = sc.textFile("/user/cloudera/Orders")
+orderItemsRDD= sc.textFile("/user/cloudera/orderItems")
+
+stp2:  create key-value pair RDD s inorder to apply join. Cast the id in to int type
+ordersPairRDD = ordersRDD.map(lambda x: (int(x.split(",")[0]), x))
+orderItemsPairRDD = ordersRDD.map(lambda x: (int(x.split(",")[1]), x))
+
+stp3: join data sets
+joined = orderItemsPairRDD.join(ordersPairRDD)
+
+verify results:
+for i in joined.take(5):
+...     print(i)
+
+result:
+(32768, (u'32768,13097,957,1,299.98,299.98', u'32768,2014-02-12 00:00:00.0,1900,PENDING_PAYMENT'))
+(49152, (u'49152,19661,1014,1,49.98,49.98', u'49152,2014-05-27 00:00:00.0,9778,SUSPECTED_FRAUD'))
+(50192, (u'50192,20081,502,2,100.0,50.0', u'50192,2014-06-04 00:00:00.0,1083,PENDING'))
+(8, (u'8,4,1014,4,199.92,49.98', u'8,2013-07-25 00:00:00.0,2911,PROCESSING'))
+(52592, (u'52592,21038,1004,1,399.98,399.98', u'52592,2014-06-19 00:00:00.0,1680,PENDING_PAYMENT'))
+
+
+stp4:  retrieve orderDate and order_item_sub_total : revenuePerOrderPerDay
+revenuePerOrderPerDay  =  joined.map(lambda t: (t[1][1].split(",")[1], float(t[1][0].split(",")[4])))
+
+verify result:
+for i in revenuePerOrderPerDay.sortByKey().take(5):
+	print(i)
+result:
+(u'2013-07-25 00:00:00.0', 199.91999999999999)
+(u'2013-07-25 00:00:00.0', 79.950000000000003)
+(u'2013-07-25 00:00:00.0', 199.99000000000001)
+(u'2013-07-25 00:00:00.0', 399.95999999999998)
+(u'2013-07-25 00:00:00.0', 399.98000000000002)
+
+stp 5: Get revenue per day from joined data using aggregation transformation reduceByKey.
+totalRevenuePerDay = revenuePerOrderPerDay.reduceByKey( 
+lambda total1, total2: total1 + total2 
+)
+
+Verify:
+for i in totalRevenuePerDay.sortByKey().take(5):
+...     print(i)
+
+Result:
+(u'2013-07-25 00:00:00.0', 26905.630000000005)
+(u'2013-07-26 00:00:00.0', 52461.579999999987)
+(u'2013-07-27 00:00:00.0', 39756.399999999994)
+(u'2013-07-28 00:00:00.0', 35312.82)
+(u'2013-07-29 00:00:00.0', 51011.529999999984)
+
+
+---------------------get the total count of orders with order_items  on daily basis---------------------
+
+Stp6:  create a combined key using order_date and order_id(from order_items dataset/joined data set) to get the distinct orders per day. 
+
+ordersPerDay = joined.map(lambda rec: rec[1][1].split(",")[1] + "," + str(rec[0])).distinct()
+ verify:
+for i in ordersPerDay.take(100):
+...     print(i)
+
+stp7: split the combined 'ordersperday' data set to make key-value pair. Key- date, value=1(maps for a order per day)
+ordersPerDayParsedRDD = ordersPerDay.map(lambda rec: (rec.split(",")[0], 1))
+
+verify:
+for i in ordersPerDayParsedRDD.sortByKey().take(100):
+...     print(i)
+
+stp8: apply recueByKey operation to sum the total orders per day
+totalOrdersPerDay = ordersPerDayParsedRDD.reduceByKey(lambda x, y: x + y)
+
+----------get the joined final output------------------------------------------------------
+finalJoinRDD = totalOrdersPerDay.join(totalRevenuePerDay)
+
+for data in finalJoinRDD.sortByKey().take(5):
+  print(data)
+
+
+28.	Joining 2 data sets using Hive Context
+1.	Import Hive Context
+From pyspark.sql import HiveContext
+2.	Create variable
+sqlContext = HiveContext(sc)
+
+** now u can directory run queries from hive tables
+3.	Count no of records in orders and order_items tables(default database)
+cnt =sqlContext.sql("select count(1) from orders")
+
+for r n cnt.collect():
+	print(r)
+
+cnt =sqlContext.sql("select count(1) from order_items")
+
+4.	Get the revenue and no of orders from order_items on daily basis
+joinRDD = sqlContext.sql("select o.order_date,sum(oi.order_item_sub_total),count(distinct o.order_id) from orders o join order_items oi on o.order_id=oi.order_item_order_id"\
+group by o.order_date order by o.order_date)
+
+** \ is given without any spaces to go to the next line in the same command
+** this method use 200 tasks to run each process which is not good. We can have a solution to that.
+** set spark.sql.shuffle.partitions in to a less value so we can get the result quickly.
+
+from pyspark.sql import HiveContext
+sqlContext = HiveContext(sc)
+sqlContext.sql("set spark.sql.shuffle.partitions=10");
+
+joinAggData = sqlContext.sql("select o.order_date, round(sum(oi.order_item_subtotal), 2), 
+count(distinct o.order_id) from orders o join order_items oi 
+on o.order_id = oi.order_item_order_id 
+group by o.order_date order by o.order_date")
+
+for data in joinAggData.collect():
+  print(data)
+
+5.	Join 2 tables using spark native SQL
+from pyspark.sql import SQLContext, Row
+sqlContext = SQLContext(sc)
+sqlContext.sql("set spark.sql.shuffle.partitions=10");
+
+ordersRDD = sc.textFile("/user/cloudera/sqoop_import/orders")
+ordersMap = ordersRDD.map(lambda o: o.split(","))
+orders = ordersMap.map(lambda o: Row(order_id=int(o[0]), order_date=o[1], 
+order_customer_id=int(o[2]), order_status=o[3]))
+ordersSchema = sqlContext.inferSchema(orders)
+ordersSchema.registerTempTable("orders")
+
+orderItemsRDD = sc.textFile("/user/cloudera/sqoop_import/order_items")
+orderItemsMap = orderItemsRDD.map(lambda oi: oi.split(","))
+orderItems = orderItemsMap.map(lambda oi: Row(order_item_id=int(oi[0]), order_item_order_id=int(oi[1]), 
+order_item_product_id=int(oi[2]), order_item_quantity=int(oi[3]), order_item_subtotal=float(oi[4]), 
+order_item_product_price=float(oi[5])))
+orderItemsSchema = sqlContext.inferSchema(orderItems)
+orderItemsSchema.registerTempTable("order_items")
+
+joinAggData = sqlContext.sql("select o.order_date, sum(oi.order_item_subtotal), 
+count(distinct o.order_id) from orders o join order_items oi 
+on o.order_id = oi.order_item_order_id 
+group by o.order_date order by o.order_date")
+
+for data in joinAggData.collect():
+  print(data)
+
+
+---------------------aggregating data sets  - totals------------------------------------------------------
+Types of totals aggregations
+
+sum, average
+min, max
+Spark provides actions such as count, total to compute sums. To compute average, we should be able to perform necessary operations by leveraging spark transformations and actions.
+
+29.	Get total number of records in a data set (eg: orders)
+ordersRDD = sc.textFile("/user/cloudera/sqoop_import/orders")
+ordersRDD.count()
+
+30.	Get total revenue from order_items
+orderItemsRDD = sc.textFile("/user/cloudera/sqoop_import/order_items")
+orderItemsMap = orderItemsRDD.map(lambda rec: float(rec.split(",")[4]))
+for i in orderItemsMap.take(5):
+ print i
+	Get max priced product in products table. 
+****Cleanup that one product with product_id 685(because it's description contains "," character so it'll give an error when executing). We will look into filtering later.
+hadoop fs -get /user/cloudera/sqoop_import/products
+#Delete the record with product_id 685
+hadoop fs -put -f products/part* /user/cloudera/sqoop_import/products
+
+
+Get max priced product using reduce, see below for the implementation in the lambda function
+
+productsRDD = sc.textFile("/user/cloudera/sqoop_import/products")
+
+*get the total record in to a map.
+productsMap = productsRDD.map(lambda rec: rec)
+
+*1st verify price value is not null and then get the maximum value.
+productsMap.reduce(lambda rec1, rec2: (rec1 if((rec1.split(",")[4] != "" and rec2.split(",")[4] != "") and float(rec1.split(",")[4]) >= float(rec2.split(",")[4])) else rec2))
+
+31.	Compute average revenue using total revenue divided by total distinct orders.
+average revenue=  (total revenue/total distinct orders from order_items)
+
+revenue = sc.textFile("/user/cloudera/sqoop_import/order_items").map(lambda rec: float(rec.split(",")[4])).reduce(lambda rev1, rev2: rev1 + rev2)
+
+totalOrders = sc.textFile("/user/cloudera/sqoop_import/order_items").
+map(lambda rec: int(rec.split(",")[1])).distinct().count()
+
+revenue/totalOrders
+
+---------------------aggregating data sets  - keys------------------------------------------------------
+By key aggregations are extensively used to group data by a key and get insights. Key could be time, category, department etc.
+
+32.	countByKey() : count Number of orders by status using different by key operations
+irrespective of the value, it count records by key.: group and count records for each key
+
+ordersRDD = sc.textFile("/user/cloudera/sqoop_import/orders")
+
+ordersMap = ordersRDD.map(lambda x:  (x.split(",")[3], x))
+* value of the key-value pair can be x or anything. Value will not be included in the output.
+*have to use print as below.
+for i in ordersMap.countByKey().items(): print(i)
+
+*normal print will only print key but not value
+for i in ordersMap.countByKey(): print(i)
+
+33.	groupByKey: count Number of orders by status using different by key operations
+
+*groupByKey is not efficient in this case, as the size of the output is very small compared to size of input data.
+
+ordersRDD = sc.textFile("/user/cloudera/sqoop_import/orders")
+
+ordersByStatus = ordersMap.groupByKey().map(lambda t: (t[0], sum(t[1])))
+
+for recs in ordersByStatus.collect(): print(recs)
+
+34.	reduceByKey():count Number of orders by status using different by key operations
+
+* Using reduceByKey. It uses combiner internally.
+Input data and output data for reduceByKey need to be of same type.
+Combiner is implicit and uses the reduce logic.
+acc:global variable to store value
+val: value
+*use combiner internally
+* combiner functionality and reducer functioality should be same
+* For all the by key aggregations where the input data volume is significantly higher than output data volume, then we should not use groupByKey.
+*groupByKey is the only option where we can extend functionality for other operations such as sorting.
+
+ordersRDD = sc.textFile("/user/cloudera/sqoop_import/orders")
+
+ordersByStatus = ordersMap.
+reduceByKey(lambda acc, value: acc + value)
+
+for recs in ordersByStatus.collect(): print(recs)
+
+35.	aggregateByKey()
+It also uses combiner internally.
+Input data and output data for reduceByKey can be of different type.
+Also combiner logic can be different from reduce logic.
+
+*for recs in ordersByStatus.collect(): print(recs)
+aggregateByKey(), combineByKey() use 3 parameters.
+*use accumilator and value
+* return value can be different from the value passing to the reducer
+* combiner functionality and reducer functioality can be different.
+	Accumilator: acc
+	Value: val
+mapRDD.aggregateByKey(initialize the acc, combiner logic, reducer logic)
+*process:
+1. acc contains the initialized value from the 1st parameter
+2. val contains the value of the map RDD.
+3. combiner logic: input acc: initialized value, input reducer: value of the mapRDD.
+we can define a logic to combiner by using the val and initialized value to acc. In below example, the val is not used to combiner logic and only acc is used to get the count of records for a particular key(status).
+Output value: acc
+ 4. reducer logic: this use to aggregate outputs of combiner logic.
+ input value: value(acc) returned from the combiner logic. 
+acc: tempory variable to store value.
+Output: value
+
+count Number of orders by status using different by key operations:
+
+ordersRDD = sc.textFile("/user/cloudera/sqoop_import/orders")
+
+ordersMap = ordersRDD.
+map(lambda rec:  (rec.split(",")[3], rec))
+
+ordersByStatus = ordersMap.
+aggregateByKey(0, lambda acc, value: acc+1, lambda acc, value: acc+value)
+
+
+36.	******Comparing aggregateByKey() and combineByKey()******
+
+mapRDD =(<order_id>,<full_ record>)
+mapRDD.aggregateByKey(initialize the acc with zeros, combiner logic, reducer logic)
+mapRDD.combineByKey(initiaize the value as the input of the value for combiner logic., combiner logic, reducer logic)
+*1st parameter of the combineByKey() would be any starting value to the value which will give as the input to the combiner logic. This value should be the 1st value for the combiner logic. 1st parameter of the aggregateByKey() would be the ZERO initialization for the acc which will be using in the combiner logic.
+* in aggregateByKey(), the initial value for the val in combiner logic would be the value part of the mapRDD key-value pair. This can be alter in the combiner logic. But in combineByKey(), this initial value for the val can be given as the 1st parameter.
+
+e.g: get the revenue by aggregating subtotals 
+mapRDD.aggregateByKey(0, lambda acc,val: acc+float(val.split(",")[4])), lambda acc,val: acc+val)
+
+mapRDD.combineByKey(lambda val: float(val.split(",")[4]), lambda acc,value: acc+value, lambda acc,value: acc+value,)
+above ex is wrong
+
+37.	combineByKey():count Number of orders by status using different by key operations
+
+It also uses combiner internally.
+Input data and output data for reduceByKey can be of different type.
+It is almost same as aggregateByKey and less frequently used.
+
+ordersRDD = sc.textFile("/user/cloudera/sqoop_import/orders")
+
+ordersByStatus = ordersMap.
+combineByKey(lambda value: 1, lambda acc, value: acc+1, lambda acc, value: acc+value)
+
+for recs in ordersByStatus.collect(): print(recs)
+
+*process:
+mapRDD.combineByKey(initiaize the value as the input of the value for combiner logic, combiner logic, reducer logic)
+
+1. 1st parameter of the combineByKey() would be any starting value to the value which will give as the input to the combiner logic.
+2. combiner logic: input acc: 0 , input value: value initialized in the 1st parameter.
+we can define a logic to combiner by using the val and acc. In below example, the val is not used to combiner logic and only acc is used to get the count of records for a particular key(status).
+Output value: acc
+**in combiner logic, it starts calculation by using the initial value in the 1st parameter. 
+Eg: map.aggregaetByKey((0,0.0), lambda acc,value: (acc[0]+1, acc[1]+ value[2], reducer logic)
+Above, acc[0] means the 1st value of the initialized map as(0,0.0). then the acc[0] value is 0. Acc[1] means 0.0. we add value[2] which means the value of the 2nd tuple in the map.
+In reducer logic, always sum the output fro the combiner logic: reducer logic: x[0]+y[0], x[1]+y[1]
+ 4. reducer logic: this use to aggregate outputs of combiner logic.
+ input value: value(acc) returned from the combiner logic. 
+acc: tempory variable to store value.
+Output: value
+
+
+38.	Requirement: Number of orders by order date and order status
+For this requirement, key is order_date and order_status
+We are doing aggregation, hence groupByKey is eliminated
+Combiner logic and reducer logic can be same, hence aggregateByKey and combineByKey are eliminated
+We are left with countByKey and reduceByKey, we can use either of them.
+
+Here is the logic implementing reduceByKey
+
+ordersRDD = sc.textFile("/user/cloudera/sqoop_import/orders")
+
+ordersMapRDD = ordersRDD.map(lambda rec: ((rec.split(",")[1], rec.split(",")[3]), 1))
+
+ordersByStatusPerDay = ordersMapRDD.reduceByKey(lambda v1, v2: v1+v2)
+
+for recs in ordersByStatusPerDay.collect(): print(recs)
+
+39.	Requirement: Generate average revenue per day
+Parse Orders (key order_id)
+Parse Order items (key order_item_order_id)
+Join Orders and Order item on the key
+Parse joined data and get (order_date and order_id) as key and order_item_subtotal as value. Here number of input records and output records will be same.
+Apply aggregate function (reduceByKey) to get revenue per order. Here number of output records will be number of distinct orders from order_items table.
+Parse revenue per order and remove order_id from the key. Here number of output records will be number of distinct orders from order_items table.
+Apply aggregate function (combineByKey or aggregateByKey) to get total revenue per day. In this input type and output type for aggregate functions are different and also we need to have custom combiner logic, hence reduceByKey cannot be used.
+Now data will have order_date as key and (revenue_per_day and total_number_of_orders) as value. Apply map function to divide revenue with total number of orders per day.
+
+ordersRDD = sc.textFile("/user/cloudera/sqoop_import/orders")
+orderItemsRDD = sc.textFile("/user/cloudera/sqoop_import/order_items")
+
+ordersParsedRDD = ordersRDD.map(lambda rec: (rec.split(",")[0], rec))
+orderItemsParsedRDD = orderItemsRDD.map(lambda rec: (rec.split(",")[1], rec))
+
+ordersJoinOrderItems = orderItemsParsedRDD.join(ordersParsedRDD)
+ordersJoinOrderItemsMap = ordersJoinOrderItems.map(lambda t: ((t[1][1].split(",")[1], t[0]), float(t[1][0].split(",")[4])))
+
+revenuePerDayPerOrder = ordersJoinOrderItemsMap.reduceByKey(lambda acc, value: acc + value)
+
+revenuePerDayPerOrderMap = revenuePerDayPerOrder.map(lambda rec: (rec[0][0], rec[1]))
+
+revenuePerDay = revenuePerDayPerOrderMap.combineByKey( lambda x: (x, 1), lambda acc, revenue: (acc[0] + revenue, acc[1] + 1), lambda total1, total2: (round(total1[0] + total2[0], 2), total1[1] + total2[1]) )
+
+revenuePerDay = revenuePerDayPerOrderMap.aggregateByKey( (0, 0), lambda acc, revenue: (acc[0] + revenue, acc[1] + 1), lambda total1, total2: (round(total1[0] + total2[0], 2), total1[1] + total2[1]) )
+
+for data in revenuePerDay.collect():
+  print(data)
+
+avgRevenuePerDay = revenuePerDay.map(lambda x: (x[0], x[1][0]/x[1][1]))
+
+for data in avgRevenuePerDay.collect():
+  print(data)
+
+40.	Get customer_id with max revenue for each day: max by key
+customer_id is in orders table and revenue need to be derived from order_items table
+Apply join between orders and order_items with order_id as key
+Apply map function to get (order_date and customer_id) as key and order_item_subtotal as value
+Apply aggregate function to generate revenue per customer per day
+Apply another aggregate function using reduceByKey to get customer with maximum revenue per day. Logic is implemented using named function and invoked from lambda function of reduceByKey
+
+ordersRDD = sc.textFile("/user/cloudera/sqoop_import/orders")
+orderItemsRDD = sc.textFile("/user/cloudera/sqoop_import/order_items")
+
+ordersParsedRDD = ordersRDD.map(lambda rec: (rec.split(",")[0], rec))
+orderItemsParsedRDD = orderItemsRDD.map(lambda rec: (rec.split(",")[1], rec))
+
+ordersJoinOrderItems = orderItemsParsedRDD.join(ordersParsedRDD)
+
+ordersPerDayPerCustomer = ordersJoinOrderItems.map(lambda rec: ((rec[1][1].split(",")[1], rec[1][1].split(",")[2]),   float(rec[1][0].split(",")[4])))
+
+revenuePerDayPerCustomer = ordersPerDayPerCustomer.reduceByKey(lambda x, y: x + y)
+
+revenuePerDayPerCustomerMap = revenuePerDayPerCustomer.map(lambda rec: (rec[0][0], (rec[0][1], rec[1])))
+
+topCustomerPerDaybyRevenue = revenuePerDayPerCustomerMap.reduceByKey(lambda x, y: (x if x[1] >= y[1] else y))
+
+#Using regular function
+def findMax(x, y):
+ 	if(x[1] >= y[1]):
+    		return x
+  	else:
+ 		return y
+
+topCustomerPerDaybyRevenue = revenuePerDayPerCustomerMap.
+reduceByKey(lambda x, y: findMax(x, y))
+
+
+------------------filtering data--------------------------------------------------------------------------------
+
+*Best practice in a question: filter as much as possible as early as possible
+* If the underlying logic in the lambda function returns false then the record will be discarded.
+
+41.	List all the distinct order statuses:
+distinctStatuses= ordersRDD.map(lambda rec: (rec.split(",")[3]).distinct()
+
+for I in distinctStatuses.collect(): print(i)
+
+42.	filter(): equals: ==
+Get all the orders with status COMPLETE
+
+ordersRDD = sc.textFile("/user/cloudera/sqoop_import/orders")
+
+for i in ordersRDD.filter(lambda line: line.split(",")[3] == "COMPLETE").take(5): print(i)
+
+43.	filter(): contains: in/not in
+Get all the orders where status contains the word PENDING
+ordersRDD = sc.textFile("/user/cloudera/sqoop_import/orders")
+
+for i in ordersRDD.filter(lambda line: "PENDING" in line.split(",")[3]).take(5): print(i)
+Get all the orders where status doesn't contain the word PENDING
+
+for i in ordersRDD.filter(lambda line: "PENDING" not in line.split(",")[3]).take(5): print(i)
+
+
+44.	filter(): greater than/less than
+Get all the orders where order_id is greater than 100
+ordersRDD = sc.textFile("/user/cloudera/sqoop_import/orders")
+
+for i in ordersRDD.
+filter(lambda line: int(line.split(",")[0]) > 100).
+take(5): 
+  print(i)
+
+
+45.	filter(): boolean operators: or, and
+
+Boolean operation - or
+Get all the orders where order_id > 100 or order_status is in one of the pending states
+ordersRDD = sc.textFile("/user/cloudera/sqoop_import/orders")
+
+for i in ordersRDD.
+filter(lambda line: int(line.split(",")[0]) > 100 or line.split(",")[3] in "PENDING").
+take(5): 
+  print(i)
+
+Make sure when combined, the boolean operations are properly bracketed
+For eg: (a and b or c) results in different than (a and (b or c)). (a and (b or c)) is correct way in most of the scenarios.
+ordersRDD = sc.textFile("/user/cloudera/sqoop_import/orders")
+
+for i in ordersRDD.
+filter(lambda line: 
+  int(line.split(",")[0]) > 1000  
+  and ("PENDING" in line.split(",")[3] 
+  or line.split(",")[3] == ("CANCELLED"))).
+take(5): 
+  print(i)
+Another example
+ordersRDD = sc.textFile("/user/cloudera/sqoop_import/orders")
+
+for i in ordersRDD.
+filter(lambda line: 
+  int(line.split(",")[0]) > 1000 
+  and line.split(",")[3] != ("COMPLETE")).
+take(5): 
+print(i)
+
+46.	Requirement: Check if there are cancelled orders with amount  greater than 1000$(per day per order)
+Get cancelled orders from orders (filter)
+Join orders (filtered) and order_items
+Generate revenue per order on the joined data set (reduceByKey)
+Discard all the cancelled orders whose revenue is less than 1000$ per day
+ordersRDD = sc.textFile("/user/cloudera/sqoop_import/orders")
+orderItemsRDD = sc.textFile("/user/cloudera/sqoop_import/order_items")
+
+ordersParsedRDD = ordersRDD.
+filter(lambda rec: rec.split(",")[3] in "CANCELED").
+map(lambda rec: (int(rec.split(",")[0]), rec))
+
+orderItemsParsedRDD = orderItemsRDD.
+map(lambda rec: (int(rec.split(",")[1]), float(rec.split(",")[4])))
+
+orderItemsAgg = orderItemsParsedRDD.
+reduceByKey(lambda acc, value: (acc + value))
+
+ordersJoinOrderItems = orderItemsAgg.join(ordersParsedRDD)
+
+for i in ordersJoinOrderItems.
+filter(lambda rec: rec[1][0] >= 1000).take(5): 
+  print(i)
+
+
+-------------------sorting and ranking- Global--------------------------------------------------------
+
+47.	sortByKey():
+a transformation
+eg: 
+orders = sc.textFile("/user/cloudera/sqoop_import/orders")
+
+for i in orders.map(lambda rec: (int(rec.split(",")[0]), rec)).sortByKey().collect():print(i)
+
+for i in orders.map(lambda rec: (int(rec.split(",")[0]), rec)).sortByKey(False).take(5): print(i)
+
+** can do double sort by making 2 pair key. Then, the list it 1st sorted by 1st field and then sorted by 2nd field of the key.
+Eg: order by customerId and then by orderId 
+for i in orders.map(lambda rec: ((int(rec.split(",")[2]),int(rec.split(",")[0])), rec)).sortByKey().take(100): print(i)
+
+o/p:
+((1, 22945), u'22945,2013-12-13 00:00:00.0,1,COMPLETE')
+((2, 15192), u'15192,2013-10-29 00:00:00.0,2,PENDING_PAYMENT')
+((2, 33865), u'33865,2014-02-18 00:00:00.0,2,COMPLETE')
+((2, 57963), u'57963,2013-08-02 00:00:00.0,2,ON_HOLD')
+((2, 67863), u'67863,2013-11-30 00:00:00.0,2,COMPLETE')
+((3, 22646), u'22646,2013-12-11 00:00:00.0,3,COMPLETE')
+((3, 23662), u'23662,2013-12-19 00:00:00.0,3,COMPLETE')
+((3, 35158), u'35158,2014-02-26 00:00:00.0,3,COMPLETE')
+
+48.	top(n):  sort in descending order and generate top n records
+for i in orders.map(lambda rec: (int(rec.split(",")[0]), rec)).top(5): print(i)
+
+49.	 takeOrdered(): 
+Can do double sorting.
+Can do reverse(descending) sorting of numeric fields by giving (-).
+data is sorted by using field of our choice in our delimited data set.
+takeOrdered(<no of records to retrieve>, data tuples/fields to be sorted)
+
+orders = sc.textFile("/user/cloudera/sqoop_import/orders")
+
+for i in orders.map(lambda rec: (int(rec.split(",")[0]), rec)).takeOrdered(5, lambda x: x[0]):print(i)
+
+*descending sorting
+for i in orders.map(lambda rec: (int(rec.split(",")[0]), rec)).takeOrdered(5, lambda x: -x[0]): print(i)
+
+for i in orders.takeOrdered(5, lambda x: int(x.split(",")[0])): print(i)
+
+*descending sorting
+for i in orders.takeOrdered(5, lambda x: -int(x.split(",")[0])): print(i)
+
+*takeOrdered(): double sort by product price in ascending and by product id in descending.
+
+topelements = nonemtyprices.map(lambda x: ((float(x[4]), int(x[0])), x)).takeOrdered(10, lambda x: (x[0][0], -x[0][1]))
+
+
+50.	-------------------------- list operations-------------------------------------------------------------------------------
+1.	Create a list
+-	Default: get the data type
+list = [1,2,3,2,1,0,6,2,7,4,3]
+Defaltly get the data type as int
+
+2.	Get the no of elements in the list
+Len(list)
+
+3.	Get the duplicates/distinct values
+set(list)
+
+4.	Sort the list in ascending order
+sorted(list)
+
+5.	Sort in to reverse order
+sorted(list, reverse=True)
+
+6.	Give the list in reverse order
+list.reverse
+7.	Retrieve elements of the list using itertools. This returns an iterable so has to print using a for loop.
+Import itertools
+For I in itertools.islice(l,0,3): print(i)
+*retrieve elements starting from 0th  element up to up to 3rd element)
+l = [1,2,3,2,1,0,6,2,7,4,3]
+list(itertools.islice(l,0,5))
+
+*sort in reverse order
+list(itertools.islice(sorted(set(l), reverse=True), 0,5))
+
+--------------------------------------groupByKey operations----------------------------------
+
+51.	groupByKey():
+create a key-value pair. The value will be a Iterable(with list of values for that particular common key)
+eg: Sort products by price with in each category
+Read data from HDFS and apply map function to define key which is category
+Apply groupByKey to group all the products in the category
+
+products = sc.textFile("/user/cloudera/sqoop_import/products")
+
+productsMap = products.map(lambda rec: (rec.split(",")[1], rec))
+productsGroupBy = productsMap.groupByKey()
+for i in productsGroupBy.collect(): print(i)
+
+o/p: value is given as object references
+
+
+** reading the values: can be read by converting the value in to a List.
+productsGroupBy = productsMap.groupByKey().map(lambda rec: (rec[0], list(rec[1])))
+
+52.	sort the list of values in one grouped data set in ascending order.
+*sort grouped data set for each key.
+
+products = sc.textFile("/user/cloudera/sqoop_import/products")
+
+productsMap = products.map(lambda rec: (rec.split(",")[1], rec))
+productsGroupBy = productsMap.groupByKey()
+
+groupedsortedList= productsGroupBy.flatMap(lambda rec: sorted(rec[1]))
+
+for i in groupedsortedList.take(50): print(i)
+
+53.	sort grouped data set by the product price
+sort by an elemnt of the value list of a grouped key.
+With in each group use sorted function to sort the data in ascending or descending order
+
+for i in productsGroupBy.map(lambda rec: sorted(rec[1], key=lambda k:float(k.split(",")[4]))).
+take(100): print(i)
+
+
+*sort in reverse: descending
+
+for i in productsGroupBy.map(lambda rec: sorted(rec[1], key=lambda k: float(k.split(",")[4]), reverse=True)).take(100): print(i)
+
+
+54.	get topN products by price by category
+
+Get top 3 priced products in each category
+Develop python function which get RDD and topN as parameters
+Compute top 3 priced products (if there are 10 products with top 3 prices, the RDD should give us all 10 products)
+
+def getTopDenseN(rec, topN):
+  x = [ ]
+  topNPrices = [ ]
+  prodPrices = [ ]
+  prodPricesDesc = [ ]
+  for i in rec[1]:prodPrices.append(float(i.split(",")[4]))
+
+  prodPricesDesc = list(sorted(set(prodPrices), reverse=True))
+
+ import itertools
+topNPrices = list(itertools.islice(prodPricesDesc, 0, topN))
+  for j in sorted(rec[1], key=lambda k: float(k.split(",")[4]), reverse=True):
+    if(float(j.split(",")[4]) in topNPrices):
+      x.append(j)
+return (y for y in x)
+
+get topN priced products by category
+Here is the code which invokes getTopDenseN
+
+products = sc.textFile("/user/cloudera/sqoop_import/products")
+productsMap = products.map(lambda rec: (rec.split(",")[1], rec))
+
+for i in productsMap.
+groupByKey().
+flatMap(lambda x: getTopDenseN(x, 2)).
+collect():
+ print(i)
+
+
+
+55.	sorting and ranking using SQL
+stp1: import
+from pyspark.sql import HiveContext
+hiveContext = HoveContext(sc)
+
+hiveContext.sql("set spark.sql.shuffle.partitions=10");
+write queries:
+for i in hiveContext.sql(select * from products limit 10).collect(): print(i)
+
+#By key sorting
+#Using order by is not efficient, it serializes
+select * from products order by product_category_id, product_price desc;
+
+*print selected columns:
+For I in hiveContext.sql ("select * from products order by product_category_id, product_price desc limit 10").collect(): print(i.product_id, i.product_category_id, i.product_price)
+
+
+#Using distribute by sort by (to distribute sorting and scale it up)
+select * from products distribute by product_category_id sort by product_price desc;
+
+#By key ranking (in Hive we can use windowing/analytic functions)
+select * from 
+  (select p.*, 
+   dense_rank() over (partition by product_category_id order by product_price desc) dr
+  from products p
+  distribute by product_category_id) q
+where dr <= 2 order by product_category_id, dr;
