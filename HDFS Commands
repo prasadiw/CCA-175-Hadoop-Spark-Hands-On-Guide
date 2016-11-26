@@ -1,0 +1,42 @@
+1.	Check the currently available data in hdfs directory : 
+hdfs dfs –
+
+2.	readthe data from a file 
+hdfs dfs –cat categories/part-m-00000
+
+3.	check all the command line options in hadoop:
+ hdfs dfs
+ 
+4.	get help on individual command:
+ hdfs dfs –help  get
+ 
+5.	create a directory in hdfs named Employee: 
+hdfs dfs –mkdir Employee
+
+6.	override/copy  a directory with files from local to hdfs :
+copy without override: hdfs dfs –put Employee
+copy with overriding: hdfs dfs –put –f  Employee
+
+7.	get a file in hdfs to local folder
+hdfs dfs -get /user/cloudera/sqoop_import/products
+copy by keeping file properties:  
+hdfs dfs –copyToLocal –p hdfs_commands/data.txt /home/cloudera/Desktop/HadoopExam
+
+8.	merge all the files in a directory in hdfs:
+•	file is saved in the local file system.
+with new line character as the seperation of file contents:
+hdfs dfs  -getmerge –nl Employee MergedEmployee.txt
+
+9.	Count the number of records in a particular file in hdfs 
+hdfs dfs –ls /user/cloudera/retail_stage/departments/part*/wc –l
+
+10.	Change permission for a file: read and write for owner and gropu member, read for other users.
+hdfs dfs –chmod 664 Employee/MergedEmployee.txt
+hdfs dfs -chmod u=rw,g=rw,o=r employee/MergedEmployee.txt
+
+11.	Remove a directoiry from hdfs:
+hdfs  dfs –rm –R departments
+
+12.	Create a file in hdfs named data.txt 
+hdfs dfs –touchz hdfs_commands/data.txt
+
