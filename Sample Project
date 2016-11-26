@@ -1,0 +1,124 @@
+###Project Requirement: Import joined orders and order_Items data set process the requiements mentined below for the orders which are not Cancelled:
+#1.Find the average revenue per day
+#2.Find the customer which generated the maximum revenue per each day
+#3.store the imported joined data set in a hive table which is partitoned by order month
+
+
+## import joined set of orders and order items to HDFS which the orders are not in cancel status.
+sqoop import \
+  --connect "jdbc:mysql://quickstart.cloudera:3306/retail_db" \
+  --username=retail_dba \
+  --password=cloudera \
+  --query="select * from orders join order_items on orders.order_id = order_items.order_item_order_id where \$CONDITIONS" \
+  --target-dir /user/cloudera/orders_join \
+  --fields-terminated-by '|' \
+  --lines-terminated-by '\n' \
+  --split-by order_id \
+  -m2
+  
+## create a sqoop job to do the incremental imports of the previously imported dataset.
+
+sqoop job --create orders_join_insert \
+  -- import \
+  --connect "jdbc:mysql://quickstart.cloudera:3306/retail_db" \
+  --username=retail_dba \
+  --password=cloudera \
+  --query="select * from orders join order_items on orders.order_id = order_items.order_item_order_id where \$CONDITIONS" \
+  --target-dir /user/cloudera/orders_join \
+  --append \
+  --fields-terminated-by '|' \
+  --lines-terminated-by '\n' \
+  --check-column "order_id" \
+  --incremental append \
+  --last-value 68883 \
+  --split-by order_id \
+  --outdir java_files
+
+##filter the orders which are not in CANCELED state
+dataRDD=sc.textFile("/user/cloudera/orders_join")
+filteredRDD=dataRDD.filter(lambda x: x.split("|")[3] != "CANCELED")
+  
+## Requirement: Generate average revenue per day using Spark with Python
+
+dataRDDMap = filteredRDD.map(lambda x: ((x.split("|")[1], int(x[0])), float(x.split("|")[8])))
+
+revPerDayPerOrder = dataRDDMap.reduceByKey(lambda x, y: x + y)
+revPerDayPerOrderMap = revPerDayPerOrder.map(lambda x: (x[0][0], x[1]))
+
+revPerDay = revPerDayPerOrderMap.aggregateByKey((0, 0), lambda x, y: (x[0] + y, x[1] + 1), lambda x, y: (round(x[0] + y[0], 2), x[1] + y[1]))
+
+for data in revPerDay.collect():
+  print(data)
+
+avgRevPerDay = revPerDay.map(lambda x: (x[0], x[1][0]/x[1][1]))
+
+for data in avgRevPerDay.collect():
+  print(data)
+  
+  
+#Requirement: Get customer_id with max revenue for each day for orders which are not cancelled using Spark with Scala
+val ordersPerCustomerData = filteredRDD.map(rec => ((rec.split("|")(1), rec.split(",")(2)),rec.split("|")(8).toFloat))
+val revPerCustomerPerDay = ordersPerCustomerData.reduceByKey((x, y) => x + y)
+
+val revPerCustomerPerDayMap = revPerCustomerPerDay.map(rec => (rec._1._1, (rec._1._2, rec._2)))
+val maxRevCustomerPerDay = revPerCustomerPerDayMap.reduceByKey((x, y) => (if(x._2 >= y._2) x else y))
+
+#Using regular function
+def maxCutomer(x: (String, Float), y: (String, Float)): (String, Float) = {
+  if(x._2 >= y._2)
+    return x
+  else
+    return y
+}
+
+val maxRevCustomerPerDay = revPerCustomerPerDayMap.reduceByKey((x, y) => maxCutomer(x, y))
+  
+  
+##create a hive partitioned table to store the joined orders and order items dataset and insert data into it using dynamic partitions.
+
+#create a hive table orders_join and load data in to it from hdfs data file
+CREATE TABLE orders_join (
+  order_id int,
+  order_date string,
+  order_customer_id int,
+  order_status string,
+  order_item_id int,
+  order_item_order_id int,
+  order_item_product_id int,
+  order_item_quantity int,
+  order_item_subtotal float,
+  order_item_product_price float
+)
+ROW FORMAT DELIMITED FIELDS TERMINATED BY '|'
+STORED AS TEXTFILE;
+
+#Load data in to orders_join table from hdfs '/user/cloudera/orders_join' location
+
+LOAD DATA inpath '/user/cloudera/orders_join/*' overwrite into table orders_join
+
+#create the partitioned hive table
+CREATE TABLE orders_join_partitioned_by_month (
+  order_id int,
+  order_date string,
+  order_customer_id int,
+  order_status string,
+  order_item_id int,
+  order_item_order_id int,
+  order_item_product_id int,
+  order_item_quantity int,
+  order_item_subtotal float,
+  order_item_product_price float
+)
+PARTITIONED BY (order_month string)
+ROW FORMAT DELIMITED FIELDS TERMINATED BY '|'
+STORED AS TEXTFILE;
+
+#insert data using dynamic partitioning:
+
+#Validate partition parameters
+hive.exec.dynamic.partition=true
+hive.exec.dynamic.partition.mode=nostrict
+
+#insert data
+insert into table orders_join_partitioned_by_month partition (order_month)
+select o.*, substr(order_date, 1, 7) order_month from orders_join o;
