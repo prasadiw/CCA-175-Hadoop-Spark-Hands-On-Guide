@@ -1,0 +1,1197 @@
+
+1.	Load scala in Spark:
+Spark-shell
+2.	Read and count no of records in a file in hdfs.
+sc.textFile("/user/cloudera/departments_text").count()
+or
+sc.textFile("hdfs://quickstart.cloudera:8022/user/cloudera/departments_text").count()
+or
+val dataRDD= sc.textFile("hdfs://quickstart.cloudera:8022/user/cloudera/departments_text")
+dataRDD.count()
+
+3.	Read and print each data record in a file in hdfs
+sc.textFile("/user/cloudera/departments_text").collect().foreach(println)
+sc.textFile("/user/cloudera/departments_avro").collect().foreach(println)
+
+4.	Save the file in hdfs as a text file. While saving, the o/p folder is created by the command itself.
+val dataRDD= sc.textFile("hdfs://quickstart.cloudera:8022/user/cloudera/departments_text")
+
+dataRDD.saveAsTextFile("hdfs://quickstart.cloudera:8022/user/cloudera/spark/departments ")
+**this generates 4 txt files bcz the vm has 2 processors and 2 core processors .
+
+5.	Save the file in hdfs as an object  file. While saving, the o/p folder is created by the command itself.
+val dataRDD= sc.textFile("hdfs://quickstart.cloudera:8022/user/cloudera/departments_Object")
+
+dataRDD.saveAsObjectFile("hdfs://quickstart.cloudera:8022/user/cloudera/spark/departments ")
+**this generates 4 txt files bcz the vm has 2 processors and 2 core processors .
+6.	val : immutable variable. So once u assigns to it you csn't re assign it.
+Var- mutable variable. Can reassign to it.
+
+7.	creating a spark context
+sc- spark context
+import spark context: import.apache.spark.sparkContext
+import who;e package: import.apache.spark._
+val sc= new sparkContext()
+if spark context is already available, an error is given.
+8.	RDD- recilient distributed dataset: means
+Data in file is devided in to chunks and distributed among different mutual exclusive nodes and its recilient bcz one node gone down the missing chunk is created in another rnode in memory.
+
+9.	developing a word count program
+stp1: create the RDD
+val data = sc.textFile(/user/cloudera/wordcount.txt)
+
+stp2:  use flat map to get sequence of words 
+val dataFlatMap = data.flatMap(rec=> rec.split(" "))
+
+verify: 
+
+ stp3:
+ create a tuple for each word and make word as key and 1 as value,
+val dataMap = dataFlatMap.map(rec=> (rec,1))
+
+verify:
+
+stp4: aggregate data  by reduce by key. Get the sum of the values of the same word.
+Val dataReduceBykey= dataMap.reduceBykey((acc,val) => acc+val)
+Verify: dataReduceBykey.collect().foreach(println)
+
+Stp5: write the o/p in to hdfs
+dataReducedByKey.saveAsTextFile("/user/cloudera/wordcountoutput.txt")
+
+10.	flatmap()
+flatmap()-
+Similar to map, but each input item can be mapped to 0 or more output items (so funcshould return a Seq rather than a single item).
+map()-  
+Return a new distributed dataset formed by passing each element of the source through a function func.
+scala> val fruits = Seq("apple", "banana", "orange")
+fruits: Seq[java.lang.String] = List(apple, banana, orange)
+scala> fruits.map(_.toUpperCase)
+res0: Seq[java.lang.String] = List(APPLE, BANANA, ORANGE)
+scala> fruits.flatMap(_.toUpperCase)
+res1: Seq[Char] = List(A, P, P, L, E, B, A, N, A, N, A, O, R, A, N, G, E)
+
+
+11.	filter()
+Return a new dataset formed by selecting those elements of the source which funcreturns true.
+scala> val x = sc.parallelize(1 to 10, 2)
+
+// filter operation 
+scala> val y = x.filter(e => e%2==0) 
+scala> y.collect
+res0: Array[Int] = Array(2, 4, 6, 8, 10)
+
+// rdd y can be re written with shorter syntax in scala as 
+scala> val y = x.filter(_ % 2 == 0)
+scala> y.collect
+res1: Array[Int] = Array(2, 4, 6, 8, 10)
+
+------ reading and saving sequence files--------------------
+Sequence files are in binary format. Sequence files store data in to hdfs in key and value format. Can write sequence file in to hdfs with a null key.
+Cannot read a text file as a sequence file. So, before reading it has to convert it to a sequence file.
+12.	  saveAsSequenceFile()-
+To save as sequence file Have to import org.apache.hadoop.io._
+Val dataRDD=sc.textFile("/usercloudera/sqoop_import/departments")
+Verify data: dataRDD.foreach(println)
+Now, need to say what is the key and value. (do the transformation). Key: null, value: content of whole dept table
+dataRDD.map(rec=> (NullWritable.get(), rec)).saveAsSequenceFile("/user/cloudera/scalaseSpark/departmentsSeq"))
+verify data: hsdoop fs –cat /user/cloudera/scalaSpark/departmentsSeq/part*
+
+save with both key and value. Key: department_id, value: 2nd field
+dataRDD.map(rec=> (rec.split(",")(0), rec.split(",")(1))).saveAsSequenceFile("/user/cloudera/scalaseSpark/departmentsSeq"))
+
+13.	SaveAsSequenceFile(): Byte Array
+Save the below RDD as a sequence file.
+Val rdd: RDD[Array[Byte]]
+
+Import org.apache.hadoop.io.compress.GzipCodec
+Rdd.map(byteArray => (NullWritable.get(), new BytesWritable(byteArray))).saveAsSequenceFile("/output/path", classOf[GzipCodec])
+
+14.	 saveAssNewAPIHadoopFile()
+To save this file Have to import org.apache.hadoop.mapreduce.lib.output._
+Val dataRDD=sc.textFile("/usercloudera/sqoop_import/departments")
+Verify data: dataRDD.foreach(println)
+Now, need to say what is the key and value. (do the transformation). Key: null, value: content of whole dept table
+Defining a variable as path bcz the main command is complex.
+Val path = "/usercloudera/sqoop_import/departments"
+**parameters for classses has to be specified in side square brackets.
+dataRDD.map(x=> (new Text(x.split(",")(0)), new Text(x.split(",")(1)))).saveAsNewAPIHadoopFile(path, classOf[Text], classOf[Text], classOf[SequenceFileOutputFormat[Text, Text]])
+verify data: hsdoop fs –cat /user/cloudera/scalaSpark/departmentsSeq/part*
+
+15.	read a sequence file stored in hdfs
+Sc.sequenceFile(path, key type, value type).map( convert in to string)
+Sc.sequenceFile("/usercloudera/sqoop_import/departments', classOf[IntWritable], classOf[Text]).map(rec=> rec.toString()).collect().foreach(println)
+
+------------------------------------------joins-------------------------------------------------------------------------------------
+
+Field             | Type        | Null | Key | Default | Extra          |
++-------------------+-------------+------+-----+---------+----------------+
+| order_id          | int(11)     | NO   | PRI | NULL    | auto_increment |
+| order_date        | datetime    | NO   |     | NULL    |                |
+| order_customer_id | int(11)     | NO   |     | NULL    |                |
+| order_status      | varchar(45) | NO   |     | NULL    |                |
++-------------------+-------------+------+-----+---------+----------------
+
+order_item_id            | int(11)    | NO   | PRI | NULL    | auto_increment |
+| order_item_order_id      | int(11)    | NO   |     | NULL    |                |
+| order_item_product_id    | int(11)    | NO   |     | NULL    |                |
+| order_item_quantity      | tinyint(4) | NO   |     | NULL    |                |
+| order_item_subtotal      | float      | NO   |     | NULL    |                |
+| order_item_product_price | float      | NO   |     | NULL    |                |
+
+16.	Get the order date and order item sub total by joining the orders and order_items tables. Get the sub total and date columns extracted.
+
+Stp1: create RDD s to contain table data as text from hdfs .
+
+Val ordersRDD= sc.textFile(/user/cloudera/sqoop_import/orders)
+Val orderitemsRDD =sc.textFile("/user/cloudera/sqoop_import/order_items")
+
+Stp2:  create map RDD s with key value pairs by making the common column(order_id) which is going to be used to join tables as the key and the full record(tuple) as the value
+
+Val ordersPassedRDD= ordersRDD.map(rec=> (rec.split(",")(0).toInt, rec))
+Val orderItemsPassedRDD= orderItemsRDD.map(rec=> (rec.split(",")(1).toInt, rec))
+
+Stp3:  join the maps.
+Val ordersJoinOrderItems = orderItemsPassedRDD.join(ordersPassedRDD)
+
+Result: key:order_id,
+ value= joined record of both tables corresponding to the order_id. This is accessible as 2 parts as per the 2 tables.
+e.g: {key, (dataset of table 1:order_items,dataset of table 2:orders)}
+(order_id, (order_item_id,order_item_order_id,order_item_product_id,order_item_quantity,_order_item_subtot,order_item_product_price, order_id,order_date,order_customer_id,order_status))
+Here, key is tuple1 and value is tuple2.
+Inside that, Value has 2 joined tables hence 1st table data is tuple1 and 2nd table data is tuple 2.
+Inside a tuple in a value, it has reocords which can be accessed as records by 0 to n : split(",")(n)
+
+Stp3: select the required data from the joined data set. Key=orders_date, value=order_item_subtotal
+**a tuple can be accessible by _
+
+Val revenuePerOrderPerDay = ordersJoinOrderItems.map(t => (t._2._2.split(",")(1) , t._2._1.split(",")(4).toFloat))
+
+See results: revenuePerOrderPerDay.take(5).foreach(println)
+
+17.	Find the revenue per day.
+Have to aggregate the dates and tot orders per that day and then calculate revenue per that day.
+Stp1: get the orders per day uing distinct(). This is a only key map.  Key= concatanation of order date and order id. So the orders will not duplicated. 
+
+Val ordersPerDay =  ordersJoinOrderItems.map(t => t._2._2.split(",")(1) ,+","+t._1).distinct()
+o/p=> key= concatanation of order date and order id without duplicate order ids.
+
+o/p is a single tuple. Key= (date,order_id)
+
+Stp2: assign 1 s next to the order date. Key=order_date, value=1
+Val orderPerDayPassedRDD= ordersPerDay.map(rec.split(",")(0),1)
+
+Print o/p : orderPerDayPassedRDD.sortByKey().take(100).foreach(println)
+
+Stp3:  group the reords by date and sum the values for that group. => use reduceByKey().
+
+Val totOrdersPerDay = orderPerDayPassedRDD.reduceByKey((x,y)=> x+y)
+
+-------------------------------------------------Aggregate functions--------------------------------------------
+
+18.	Sum. E.g: get the total revenue from orderItems table. Have to get the sum of the sub total column of the OrderItems table. The column is the 5th column in the table. 
+
+Create rdd variable to read data from data file in hdfs and store it. Rdd willmap to to this file in this location.
+Val orderitemsRDD =sc.textFile("/user/cloudera/sqoop_import/order_items")
+
+orderitemsRDD.count(); give tot no of records
+
+do the transformation:
+verify the transformation by reading 1st 5 records.
+orderitemsRDD.map(rec => rec.split(",")(4).toFloat).take(5)
+
+do the tranformation and sum the sub total:
+orderitemsRDD.map(rec => rec.split(",")(4).toFloat). reduce((acc,value) => acc+value)
+ this will give the result with float. So to have the real double result:
+
+val rev= orderitemsRDD.map(rec => rec.split(",")(4).toFloat). reduce((acc,value) => acc+value)
+
+printf("%f",rev)
+
+19.	Get the avg revenue:
+(total of sub tot(revenue)/distinct no of orders(distinct of order item id s))
+
+Val orderCount= orderitemsRDD.map(_.split(",")(1).toInt.)distinct.count()
+Here, o/p is the count of distinct order id s.
+Can use _ instead of rec=>rec
+ 
+Val avgRevenue= rev/orderCount
+
+20.	Get the highest revenue generating order.
+Get the revenue for each order id.
+Stp1: get the subtotal and orderitem id s in to a map. The map key should be orderid
+
+Val orderItemsMap=orderItemsRDD.map(rec=>(rec.split("1")(1),toInt,rec.split(",").(4).toFloat))
+
+here, toInt and toFloat conversions required bcz default data type of the transformation would be string.
+Verify the result of the map:
+orderItemsMap.take(5).foreach(println)
+stp2: calculate revenue for a particular orderitemid. Add revenue for each key.
+
+Val revenuePerOrder = orderItemsMap.reduceByKey((acc, value)=> acc+value)
+Verify result: revenuePerOrder.take(5).foreach(println)
+Stp3: get the orderItem with the highest revenue.
+Here, data type of the acc and value is tuple bcz its written in as tuple to the map. Tuple is represented by _.
+revenuePerOrder.reduce((acc,value) => (if (acc._2 >= value._2) acc else value))
+
+stp4: validate by mysql
+select order_item_order_id, sum(order_item_sub_total) from order_items
+group by order_item_order_id
+order by 2;
+21.	Count no of records for each order status using countByKey()
+
+Stp 1: Val ordersRDD =sc.textFile("/user/cloudera/sqoop_import/orders")
+Verify: ordersRDD.take(5).foreach(println)
+Order status is the 4th tuple.
+
+Stp2: generate no of records for each order status.
+ordersRDD.map(rec=>(rec.split(",")(3),rec)).countByKey().foreach(println)
+
+
+
+
+verify in mysql: select order_status, count(1) from orders group by order_status
+
+22.	Count no of records for each order status using Groupbykey()
+Doesn’t have combiner logic.
+Stp 1: Val ordersRDD =sc.textFile("/user/cloudera/sqoop_import/orders")
+
+Stp2: create a RDD to select all the records with a order_status
+Val ordersMap=ordersRDD.map(rec => (rec.split(","),(3), 1))
+Here, contains status as key and 1 as value in each record.
+
+Stp3: apply gorupByKey() . this will list all the values(1 s) for each order_status 
+ordersMap.groupByKey()
+verify results: ordersMap.groupByKey().take(5).foreach(println)
+this will create an array of once for a item status.
+
+stp4: get the sum of 1 s to generate the no of records for a particular item_status.
+ordersMap.groupByKey().map(rec=>(rec._1,rec._2.sum))
+
+verify result:  collect(): to fetch every record.
+ordersMap.groupByKey().map(rec=>(rec._1,rec._2.sum)).collect().foreach(println)
+
+23.	ReduceByKey(): Count no of records for each order status using
+*** input data type and output data type of an aggregate function should be same.
+** to use reduceByKey():combiner logic and reduce logic should be same.
+**all intermediate and final aggreagtion logics(transformations) should be same.
+** so, since the outut type of the value should be an int(no of records for each order status), we have to make the value of the input key value pair ma rdd as int. 
+** here, do the operation mentioned in the reduce logic to the value in the each element(record) of the key/value pair map rdd.
+In this example, add values(1s) to get the count of reocrds for each group.
+** here, by this function, 1st group all the records by key and get the count of each records for a particular group by suming the 1 s(value) of each element(record)
+
+Stp 1: Val ordersRDD =sc.textFile("/user/cloudera/sqoop_import/orders")
+
+Stp2: create a RDD to select all the records with a order_status
+Val ordersMap=ordersRDD.map(rec => (rec.split(",").(3), 1))
+Here, contains status as key and 1 as value in each record.
+Input type: <string,int>
+
+Stp3: apply reduceByKey(tranfformation) . 
+Acc:variable to store value, value: value of the key value pair of ordersMap record.
+This group records by key and sum the values of the same key.
+ordersMap.reduceByKey((acc,value)=> acc+value)
+o/p type= <string,int>
+verify results: ordersMap.reduceByKey((acc,value)=> acc+value).collect().foreach(println)
+
+** can use for add,multiply,ect inside the transformation ((acc,val)=> acc*val)
+
+24.	combineByKey(): Count no of records for each order status using. 
+*** input data type and output data type of an aggregate function should be same.
+** to use combineByKey():combiner logic and reduce logic NEED NOT TO BE SAME. 
+**Has 3 arguments.
+1.	1st Argument : create Combiner is called when a key(in the RDD element) is found for the first time in a given Partition. This method creates an initial value for the accumulator for that key
+2.	2nd Argument : mergeValue is called when the key already has an accumulator
+3.	3rd Argument : mergeCombiners is called when more that one partition has accumulator for the same key
+Stp 1: Val ordersRDD =sc.textFile("/user/cloudera/sqoop_import/orders")
+
+Stp2: create a RDD to select all the records with a order_status
+Val ordersMap=ordersRDD.map(rec => (rec.split(",")(3), 0))
+Here, contains status as key and 0 as value in each record.
+Input type: <string,int>
+
+Stp3: apply combineByKey(transformation) .  need 3 parameters.
+Acc:variable to store value, value: value of the key value pair of ordersMap record.
+
+Val ordersByStatus = ordersMap.combineByKey(value => 1, (acc: Int,value: Int)=> acc+ 1, (acc:Int, value:Int)=> acc+value)
+o/p type= <string,int>
+verify results: ordersByStatus.collect().foreach(println)
+
+*********************************************************************
+Combine by key: input type of the value of the key value pair map and the output type of the value of the key value pair map should be same. So we have to make the value of the ordersMap as a int value. Can make any interger value as the value(o or any integer value)
+1st parameter value is the value initialized for the 1st record of the RDD map. In above example, 1 records is considered as int value 1. When the combiner logic is applied, value of a record(tuple) is considered as int 1.
+
+Aggrgate by key: here, input and output types of the value need not to be same. So value can be anything(array[].string,int,etc)
+
+
+
+****************************************************************
+
+25.	aggregateByKey(): Count no of records for each order status using. 
+*** input data type and output data type of THIS function NEED NOT TO BE SAME.
+** to use combineByKey():combiner logic and reduce logic NEED NOT TO BE SAME. 
+Has 2 parameters.
+1-	Intialize value
+2-	(combiner logic, reducer logic)
+***** here, initialization always should be a zero. By the initialization we can set the data type of the value of each element(record) of the map rdd. 
+In this example, its 0 so we consider it as a int and start the operation with value 0. For the 1st elemnt it considered as 0 and from that point onwards it stored the value and make the value as the current value of the 'value' variable.
+
+Stp 1: Val ordersRDD =sc.textFile("/user/cloudera/sqoop_import/orders")
+
+Stp2: create a RDD to select all the records with a order_status
+Val ordersMap=ordersRDD.map(rec => (rec.split(",")(3), rec))
+Here, contains status as key and 0 as value in each record.
+Input type: <string,int>
+
+Stp3: apply AggrigateByKey(transformation) .  need 3 parameters.
+Acc:variable to store value, value: value of the key value pair of ordersMap record.
+-	Can have different combiner logic than the reducer logic
+-	 here,combiner logic: get the tot no of records with same date value: acc+1 :get the tot no of records with same key(date)
+-	Reducer logic: get the sum of the output of reducer logic.
+
+Val ordersByStatus = ordersMap.aggregateByKey(0)((acc,value) => acc+1, (acc,value) => acc+value)
+o/p type= <string,int>
+verify results: ordersByStatus.collect().foreach(println)
+
+OR
+Stp2: Val ordersMap=ordersRDD.map(rec => (rec.split(","),(3), rec))
+Input type: <string,string>
+Stp3:
+Val ordersByStatus = ordersMap.aggregateByKey(0)((acc,value) => acc+1, (acc,value) => acc+value)
+o/p type= <string,int>
+
+** here, the combiner and reducer logic is calculated to the initialized value in the 1st parameter. 
+
+26.	calculate avg revenue per day:
+need 2 tables- orders(order_id,order_date), order_items(order_item_order_id, oreder_item_sub_total)
+-	get the tot revenue per order by suming sub totals for one order
+-	get the sum of revenues and devide it with no of distinct orders
+-	has to do joining and aggregation
+validate in sql: select count (distince order_item_order_id) from order_items
+stp1:  create RDD s
+val ordersRDD = sc.textFile("/user/cloudera/sqoopimport/orders")
+val orderItemsRDD = sc.textFile("/user/cloudera/sqoopimport/order_Items")
+stp2:  get order id and date from orders and create a map. Get order_ietms_order_id and sub tot from order_items and create map.
+Val ordersMap= ordersRDD.map(rec=> (rec.split(",")(0).toInt, rec.split(",")(1)))
+Val orderItemsMap= orderItemsRDD.map(rec=> (rec.split(",")(1).toInt, rec.split(",")(4)))))
+Verify using take(5)
+Stp3: join 2 data sets. Key- orders_key, value- rest of the record(date,sub tot)
+Val ordersJoin= orderMap.join(orderItemsmap)
+Verify: ordersJoin.take(5).foreach(println)
+Stp4: get the revenue per order in a single day.
+- cretae a map with key- (date,order_id ), value- subtotal
+Val ordersJoinMap= ordersJoin.map(rec=> ((rec._2._1, rec_1), rec._2._2)
+-use reduce by key to aggregate by id per day and get the sub of sub tot=> revenue per day per order
+Val revenuePerOrder = orderJoinMap.reduceByKey((acc, value) => acc+value)
+Verify:  
+Stp5: discard order_id from revenuePerOrder
+Val revenuePerOrderMap = revenuePerOrder.map(rec=> (rec._1._1,rec._2))
+Stp6: aggreagte by date to get the total revenue per each day.
+Have to get the sum of distinct orders by getting sum of records per same date.
+Then have to get the sum of sub tot per day.
+Can do both using aggregate by key. Cannot use reduce by key bcz input data type and o/p data type are different: input type- float(revenue per order per day), o/p types- float(revenue per day) and int(no of distinct orders per day). 
+Define type(0.0,0) : by this we can define what would be the 1st record and second record for the value of the map. Key would be date.
+create combiner logic: (acc._1+value._1),(acc._1+1): (sum revenue)(get no of orders per day by adding records 1 by 1)
+create reducer logic: (acc._1+value._1),(acc._1+1): sum of values passed by the combiner logic.
+aggregateByKey(intialize the values in the value section in the map)(<combiner logic>, <reducer logic>)
+Val revenueAggPerDay = revenuePerOrderMap.aggregateByKey((0.0, 0))((acc,value)=> (acc._1+value, acc._2+1) , (acc, value) => (acc._1_+value._1, acc._2+value._2))
+o/p from combiner logic(intermediate logic): for a particular date: 1 tuple 
+generate multiple intermediate results for same date
+Initialization(0.0,0)
+(rev1,1)=>(rev1+rev2,2)=>(rev1+rev2+rev3,3)=>………….. (rev1+rev2+rev3+….+revn, <no of distict order for this day>)
+date1(rev1,no of orders for day 1:m1)
+date1(rev2, no of orders for day 2:m2)
+date2(rev3, no of orders for day 3:m3)
+-
+-
+-
+Date n(rev n, no of orders for day n:mn)
+Date n(rev n2, no of orders for day n:mn1)
+Date n(rev n3, no of orders for day n:mn2)
+
+o/p from reducer logic: aggregate intermediate results generated by combiner logic for each day.
+Initialization(0.0,0)
+Date1(rev1+rev2, m1+m2)
+Date2(rev3, m3 )
+-
+-
+-
+Date1(rev n+rev n2 +rev n3, mn+mn2+mn3 )
+o/p=(date, (<revenue per day>,<distinct count of orders per day>)
+Stp 7: get the avg : 
+revenueAggPerDay.map(rec => (rec._1, rec._2._1/rec._2._2)).sortByKey().collect().foreach(println)
+
+----------------------Filtering Data-------------------------------------------------------
+** filter() is a transformation in spark.
+Filter and give the o/p wich returns true to the function in the transformation.
+Val ordersRDD=sc.textFile("/usercloudera/sqoop_import/orders")
+27.	filter records with Order_status="COMPLETE".
+ordersRDD.filter(_.split(",")(3)).equals("COMPLETE")).collect().foreach(println)
+
+28.	 filter records with status with PENDING and PENDING PAYMENTS.
+ordersRDD.filter(_.split(",")(3)).contains("PENDING")).collect().foreach(println)
+29.	 get records where the id is greater than 100.
+ordersRDD.filter(_.split(",")(0)),toInt  >100).take(5).foreach(println)
+
+30.	get all the records where id>100 or order_status is PENDING
+ordersRDD.filter(line=> line.split(",")(0)),toInt  >100 ||line. split(",")(3)).contains("PENDING")  ).take(5).foreach(println)
+31.	get all the reords with id>1000 and status is PENDING or CANCELLED
+
+ordersRDD.filter(line=> line.split(",")(0)),toInt  >1000 && (line.split(",").(3).contains("PENDING") ||line. split(",")(3)).contains("CANCELLED"))).take(5).foreach(println)
+
+32.	get all the reords with id>1000 and status is NOT not COMPLETE
+ordersRDD.filter(line=> line.split(",")(0)),toInt  >1000 && !line.split(",").(3).contains("COMPLETE") 
+
+33.	check if there any cancelled orders with amount greater than 1000$
+each order has multiple order items.
+** 1st join and then check cancelled status is not efficient. 1st hould filter and then join.
+
+-	get only cancelled orders
+-	join orders and order items
+-	generate sum(order_item_subtotal) 
+-	filter data which amount to generate than 1000$
+stp1: 
+Val ordersRDD=sc.textFile("/usercloudera/sqoop_import/orders")
+Val orderItemsRDD=sc.textFile("/usercloudera/sqoop_import/orderItems")
+Step 2: get only cancelled orders
+
+Val ordersCancelled=ordersRDD.filter(_.split(",")(3).equals("CANCELLED"))
+
+VERIFY: ordersCancelled.collect().foreach(println)
+
+stp3-
+join orders and order items
+** better if can do join and then aggregate(group). More faster and efficient
+
+Stp3.1: Create the map .Set key- order_id and value-reord
+
+val ordersCancelledMap= ordersCancelled.map(rec=> (rec.split(",")(0), rec))
+
+verify: ordersCancelledMap.take(5).foreach(println)
+
+
+Stp3.2: Create the map .Set key- orderItem_id and value-reord
+
+val ordersItemsMap= orderItems.map(rec=> (rec.split(",")(1), rec))
+
+verify: orderItemsMap.take(5).foreach(println)
+
+stp 3.3 : join
+val ordersJJoinRDD= ordersItemsMap.join(ordersCancelledMap)
+
+verify: ordersJJoinRDD.take(5).foreach(println)
+o/p: nested tuple of the both tables.
+
+-	Stp4:
+generate sum(order_item_subtotal) oer order
+stp 4.1 : aggregate(group)
+o	aggregate id and sub total columns
+		val ordersAggMapRDD= ordersJoinRDD.map(rec=> (rec._1, rec._2_1.split(",")(4).toFloat))
+verify: ordersAggMapRDD.take(5).foreach(println)
+stp 4.2
+o	reduce by key
+
+val ordersAggRDD = ordersAggMapRDD. reduceByKey((acc,value) => acc+value)
+
+stp5:
+-	filter data which amount to generate than 1000$
+ordersAggRDD.filter(_._2 >=1000).collect().forwach(println)
+
+
+**implement above question using sql
+stp 1: import org.apache.hadoop.spark.sql.hive.HiveContext
+val  sqlContext = new HiveContext(sc)
+
+sqlContext.sql (select * from (select o.order_id, sum(oi.order_item_subtotal) as order_item_revenue from orders o join order_items oi on order_id=order_item_order_id where o.order_status='CANCELLED' group by o.order_id) q where order_item_revenue >= 1000).collect().foreach(println)
+
+34.	global sorting: sort the whole table: sortByKey
+e.g: get the info of top 5 prices of the products.
+
+Stp 1
+Val products = sc.textFile("/user/cloudera/sqoop_import/products")
+
+Stp2: cretae map and sort it by price in ascending order(default is ascending order by string type so have to cast the key to appropriate type. In this case Float.)
+products.map(rec=> (rec .split(",")(4).toFloat, rec)).sortBykey().take(5).foreach(println)
+
+Stp3: cretae map and sort it by price in descending order
+products.map(rec=> (rec .split(",")(4).toFloat, rec)).sortBykey(false).take(5).foreach(println)
+
+35.	global sorting: sort the whole table: top()
+e.g: get the info of top 5 prices of the products.: 
+top(5): sort by key and get the top 5 results
+
+Stp 1
+Val products = sc.textFile("/user/cloudera/sqoop_import/products")
+
+Stp2: cretae map and sort it by price in ascending order and then get top 5(highest) records
+products.map(rec=> (rec .split(",")(4).toFloat, rec)).top(5).foreach(println)
+
+36.	global sorting: sort the whole table: takeOrdered()
+e.g: get the info of least 5 prices of the products.: 
+sort by key in ascending and get the 1st 5 results
+
+Stp 1
+Val products = sc.textFile("/user/cloudera/sqoop_import/products")
+
+Stp2: no need to create map. To order the data in ascending order and get least cost products:
+products.takeOrdered(5)(Ordering[Float].on(rec=> (rec .split(",")(4).toFloat)).foreach(println)
+
+e.g: get the info of top 5 prices of the products.: 
+sort by key in ascending and get the 1st 5 results
+To order the data in descending order and get least cost products:
+
+products.takeOrdered(5)(Ordering[Float].reverse.on(rec=> (rec .split(",")(4).toFloat)).foreach(println)
+** using takeOrdered(), can do secondary sorting as we//: 1st order by one column and then order by another column.
+
+Eg 2:
+orders.map(rec => (rec.split(",")(0).toInt, rec)).
+  takeOrdered(5).
+  foreach(println)
+
+orders.map(rec => (rec.split(",")(0).toInt, rec)).
+  takeOrdered(5)(Ordering[Int].reverse.on(x => x._1)).
+  foreach(println)
+
+orders.
+  takeOrdered(5)(
+    Ordering[Int].on(x => x.split(",")(0).toInt)
+  ).
+  foreach(println)
+
+orders.
+  takeOrdered(5)(
+    Ordering[Int].reverse.on(x => x.split(",")(0).toInt)
+  ).
+  foreach(println)
+
+--------list----------------------
+
+37.	Create a list
+-	Default: get the data type
+val list = List(1,2,3,2,1,0,6,2,7,4,3)
+Defaltly get the data type as int
+
+-	Can define data type:
+val list: List[Int] = List(1,2,3,2,1,0,6,2,7,4,3)
+
+38.	Get the no of elements in the list
+list.length
+
+39.	Get the distinct elements in the list
+list.distinct
+o/p= List(0,1,2,3,6,7,4)
+
+40.	Sort the list in ascending order
+list.sorted
+
+41.	Give the list in reverse order
+list.reverse
+
+42.	Sort the list in reverse(descending) order
+list.sorted.reverse
+
+43.	Get the top 5(highest 5) elements in the list
+list.sorted.reverse.take(5)
+
+44.	Get the top 5 distinct elements in the list
+list.distinct.sorted.reverse.take(5)
+
+45.	Read aparticular element from the list
+1st element: 
+list(0)
+
+46.	Get the sum of all the elements in the list.
+list.reduce(_+_)
+
+47.	Create a tuple
+val t: (Int, Int) =(0,1)
+
+48.	Read elemnts in a tuple: (1)
+1st element: t._1
+2nd element: t._2
+
+49.	Create a tuple with 2 elements as int and List and read the elements.
+val t: (Int, Iterable[Int]) = (1, List(1,2,3,4,5,6))
+
+read 1st element: t._1
+o/p: Int= 1
+
+read 2nd element: 
+t._2
+o/p: Iterable[Int] = List(1,2,3,4,5,6)
+
+t._2(0)
+o/p=1
+
+t._2(1)
+o/p=2
+
+50.	Create a tuple with 2 elements as int and a nested List with 2 data types. read the elements.
+val t: (Int, (List[Int], List[String])) = (1,( List(1,2,3,4,5,6),List(Hello, world)))
+
+1st ele: t._1
+o/p= 1
+
+2nd ele: t._2
+o/p: ( List(1,2,3,4,5,6),List(Hello, world)))
+
+t._2._1
+o/p : List(1,2,3,4,5,6)
+
+t._2._2
+o/p: (Hello, world)
+
+t._2._1(0)
+o/p: 1
+
+t._2._2(0)
+o/p: Hello
+
+51.	Convert list of string to a RDD of strings
+** use sc.parallelize() method
+
+52.	Create a RDD from a List
+Val rdd= sc.parallelize(List("q","e","r"))
+Val rdd= sc.makeRDD(List(1,2,3,4,5,6,7,8))
+
+
+53.	Do group  y key operation to Products table. Gropu by Product_category
+
+Stp 1
+Val products = sc.textFile("/user/cloudera/sqoop_import/products")
+
+Stp2:  group by product category id
+Val productGroupBy = products.map(rec=> (rec.split(",")(1).toInt, rec)).groupByKey().take(5).foreach(println)
+
+o/p of a tuple: (<product category id>, (<each and every product record for the particular product category id as a iterable list of elements >))
+e.g: (52, (record1,record2,record3))
+(53, (record4,record5))
+
+o/p  data type: (String, Iterable[String])
+
+** can do sorting and ranking to this value section(iterable list)
+** iterable[] is an array.
+
+
+54.	Generate all the records which has been grouped by category in previous question as separate tuples
+
+productsGroupBy.flatMap(rec => rec._2).take(100).foreach(println)
+o/p:
+record1
+record2
+record3
+record4
+record5
+
+55.	Get data sorted by product price per categoey.
+Get the group by map and apply sort by() function to the iterable list.
+o/p will be a list.
+ 
+productsGroupBy.map(rec=> (rec._2.toList.sortBy(k=> k.split(",")(4).toFloat))).take(100).foreach(println)
+
+** to get the result as record per line without grouped by category, can use flatMap() transformation.
+productsGroupBy.flatMap(rec=> (rec._2.toList.sortBy(k=> k.split(",")(4).toFloat))).take(100).foreach(println)
+
+56.	Sort the list in descending order when the sort by element data type is Int or Float
+
+productsGroupBy.flatMap(rec=> (rec._2.toList.sortBy(k=> -k.split(",")(4).toFloat))).take(100).foreach(println)
+if sort by key(element) is a tring, then we have to use a custom logic to sort by descending order.
+
+57.	Define a function to iterate through grouped list and generate the list of records grouped by categories.
+Val products = sc.textFile("/user/cloudera/sqoop_import/products")
+
+Val productGroupBy = products.map(rec=> (rec.split(",")(1).toInt, rec)).groupByKey().take(5).foreach(println)
+
+Data type of groupByKey map : (String, Iterable[String])
+
+**function to create a list product records grouped by product category.(to get the 2nd element of the input tuple)
+def <method name>(rec: <input data type>): <output data type> = {
+Return statement
+}
+** here, o/p should be the input to flatMap(). So it should bein  iterable data type.
+
+def getAll(rec: (String, Iterable[String])): Iterable[String] = {
+	return rec._2
+}
+
+Verify result: productGroupBy.flatMap(getAll(_)).take(100).foreach(println)
+
+58.	Define a function to iterate through grouped list and generate the sorted list of records grouped by categories.
+Val products = sc.textFile("/user/cloudera/sqoop_import/products")
+
+Val productGroupBy = products.map(rec=> (rec.split(",")(1).toInt, rec)).groupByKey().take(5).foreach(println)
+
+Data type of groupByKey map : (String, Iterable[String])
+
+**function to create a list product records sorted by product price and grouped by product category.(to get the 2nd element of the input tuple)
+def <method name>(rec: <input data type>): <output data type> = {
+Return logic
+}
+** here, o/p should be the input to flatMap(). So it should bein  iterable data type.
+** get 1 tuple of the map and get the value:2nd element(grouped list of records by product category) and sort that by product price and return as an iterable. Then get the 2nd tuple and do o the same and return and combine the result to the result of 1st record.
+
+def sortList(rec: (String, Iterable[String])): Iterable[String] = {
+return rec._2.toList.sortBy(k=> k.split(",")(4).toFloat)
+}
+
+Verify and print result: productGroupBy.flatMap(sortListl(_)).take(100).foreach(println)
+
+59.	RANKING a list- Define a function to iterate through grouped list and generate the sorted list of records grouped by categories. Get only first  5 records with highest product prices per product category. 
+Val products = sc.textFile("/user/cloudera/sqoop_import/products")
+
+Val productGroupBy = products.map(rec=> (rec.split(",")(1).toInt, rec)).groupByKey().take(5).foreach(println)
+
+Data type of groupByKey map : (String, Iterable[String])
+
+**function to create a list product records sorted by product price and grouped by product category.(to get the 2nd element of the input tuple). Get only the topn 5 records according to the product price.
+def <method name>(rec: <input data type>): <output data type> = {
+Return logic
+}
+** here, o/p should be the input to flatMap(). So it should bein  iterable data type.
+** have to sort by descending order bcz we do ranking and getting top 5 records with (highest price).
+
+def getTopN(rec: (String, Iterable[String])): Iterable[String] = {
+return rec._2.toList.sortBy(-k=> k.split(",")(4).toFloat).take(5)
+}
+ Or
+def getTopN(rec: (String, Iterable[String])): Iterable[String] = {
+return rec._2.toList.sortBy(-_.split(",")(4).toFloat).take(5)
+}
+
+Verify and print result: productGroupBy.flatMap(getTopN(_)).take(100).foreach(println)
+
+60.	RANKING: parameterize the function: give the no of records to display per product category as a parameter and define it when calling thefunction.
+ a list- Define a function to iterate through grouped list and generate the sorted list of records grouped by categories. Get only first  5 records with highest product prices per product category. 
+Val products = sc.textFile("/user/cloudera/sqoop_import/products")
+
+Val productGroupBy = products.map(rec=> (rec.split(",")(1).toInt, rec)).groupByKey().take(5).foreach(println)
+
+Data type of groupByKey map : (String, Iterable[String])
+
+**function to create a list product records sorted by product price and grouped by product category.(to get the 2nd element of the input tuple). Get only the topn 5 records according to the product price.
+def <method name>(rec: <input data type>): <output data type> = {
+Return logic
+}
+** here, o/p should be the input to flatMap(). So it should bein  iterable data type.
+** have to sort by descending order bcz we do ranking and getting top <topN> no of records records with (highest price).
+
+def getTopN(rec: (String, Iterable[String]), topN:Int): Iterable[String] = {
+return rec._2.toList.sortBy(-_..split(",")(4).toFloat).take(topN)
+}
+
+Call the method:
+ productGroupBy.flatMap(getTopN(_), 5).take(100).foreach(println)
+
+61.	Finding top 5/n priced products by category: find the product records which includes top n(5) distinct prices  withing the same product_category.
+Stp1- group the records by product category and crete productsMap
+Stp2: create function:
+o	Get the prices only and save it in prodPrice list
+o	Sort the distinct prodPrices and in descending order and get the toP N prices
+o	Store each product records for a particular product category in to a list by sorting(optional.do to efficiency) them by price: sortedRecs
+o	By iterating through sortedRecs, find the records which has top N product prices 
+
+
+Val products = sc.textFile("/user/cloudera/sqoop_import/products")
+
+Val productGroupBy = products.map(rec=> (rec.split(",")(1).toInt, rec)).groupByKey().take(5).foreach(println)
+
+Data type of groupByKey map : (String, Iterable[String])
+Stp2:
+	def getTopDeseN(rec: (String, Iterable[String]), topN: Int): Iterable[String] = {
+		var prodPrices: List[Float]= List()
+		var topNPrices: List[Float] = List()
+		var sortedRecs: List[String] = List()
+		#adding prices 1 by 1 in to the prodPrices list
+for(i<- rec._2) {
+	prodPrices = prodPrices:+ i.split(",")(4).toFloat
+}
+#sort distinct prodPrices  in descending order and get top topN prices in to topNPrices list
+topNPrices = prodPrices.distinct.sortBy(k=>-k).take(topN)
+
+#list every product reocrd grouped in 1 itereation in to a string list and sort it by price: sortedRecs
+sortedRecs = rec._3.toList.sortBy(k=> k.split(",")(4).toFloat)
+#declare variable as x in string list data type
+Var x: List[String] = List()
+#logic to generate records with top topN prices
+For(i<- sortedRecs ) {
+	If (topNPrices.contains(i.split(",")(4).toFloat))
+	x = x:+i
+}
+return x
+} 
+
+generate result: 
+productsMap.groupByKey().flatMap(x => getTopDenseN(x, 2)).collect().foreach(println)
+
+62.	Spark SQL: launch spark sql-
+Global sorting: order by product price: and ranking
+Select * from products order by product_price desc limit 10;
+
+63.	Spark SQL: order by produc_category_id and order the data set desc on product price
+Select * from products order by product_price desc limit 10;
+
+
+*** windowing/analytics functions are not run in spark-sql or in hive context in spark. It only run properly in HIVE.
+
+64.	u have been given following 2 files.
+Content.txt : contains a huge text file containing space seperated words.
+Remove.txt : Ignore/folter all the words given in this file (comma seperated)
+Write a spark program which reads the Content.txt file and load as an RDD, remove all the words from a broadcast variable (which is loaded as an RDD of words from Remove.txt.)
+And count the occurrence of the each word and save it as a text file in HDFS.
+
+Solution:
+
+Stp 1: create all 3 files in hdfs in directory called spark2.
+
+Stp2: load the Content.txt file
+Val content = sc.textFile("/user/cloudera/spark2/Content.txt")
+
+Stp3: load the Remove.txt file
+val remove = sc.textFile("/user/cloudera/spark2/Remove.txt")
+
+Stp4:  create an RDD from remove, however there is a possibility each word could trainling spaces, remove those white spaces as well. Using 2 functions here. Flatmap,map and trim.
+
+val removeRDD= remove.flatMap (x=> x.split(",")).map(word=> word.trim) //create an array of words
+
+stp5: broadcast the variable which you want to ignore.
+Val bRemove = sc.broadcast(removeRDD.collect().toList) // it should be an array of string
+
+Stp 6: split the content RDD so we can have array of strings.
+Val words =  content.flatMap(line=>line.split(" "))
+
+Stp 7: filter the RDD, so it can have only content which are not present in "Broadcast Variable".
+Val filtered =  words.filter{case (word) => !bRemove.value.contains(word)}
+
+Stp 8: create a PairRDD, so we can have (word,1) tuple or PairRDD.
+val pairRDD = filtered.map(word=> (word,1))
+
+stp9: Now do the word count on PairRDD.
+Val wordCount = pairRDD.reduceByKey(_+_)
+
+
+65.	trim a record in a flat map and cretae a map by each record
+val trimmedContent = flatContent.map(word=> word.trim)
+
+66.	filter out content of one RDD from the content of another RDD : subtract()
+val filtered = trimmedContent.subtract(removeRDD)
+
+67.	subtractByKey() : filter out(remove) the values with same key form 1 list rdd from another list rdd. Here if the long list(list1) have multiple reocrds from the same key and that key is subtractable(contains in the list 2), all those elements(records) will be removed.
+
+** very similar to subtract(), but instead supplying a function the key component of each pair will be automatically used as a cretarion for removing items from the first rdd.
+
+e.g: remove records(elements) from list 1 which has the same word length as the elements(records) in list 2 .
+list 1 =List("dog","tiger","lion","cat","spider","eagle")
+list2 = List("ant", "falcon", squid)
+
+val rdd1= sc.parallelize(List("dog","tiger","lion","cat","spider","eagle")) 
+val pair1= rdd1.keyBy(_.length)
+
+val rdd2=sc.parallelize(List("ant", "falcon", squid))
+val pair2 = rdd2.keyBy(_.length)
+
+val result = pair1.subtractedByKey(pair2)
+
+result.collect
+
+o/p:  Array[(Int, String)] = Array((4,lion))
+
+
+68.	swap key and value of a map as the previous value becomes the key of the new map and previous key becomes the value of the new map.
+Val swapped = wordCount.map(item=> item.swap)
+
+69.	sort the content by key in reverse order(descending)
+Val sortedOutput= swapped.sortByKey(false)
+
+70.	save output as a compressed file
+Import org.apache.io.compress.GzipCodec
+sortedOutput.saveAsTextFile("spark3/compressedresult",classof[GzipCodec])
+ 
+71.	filter a list of words from another list of words.
+Iteration can be done using case syntax.
+Case syntax iterate the content of the list which is calling.
+val list1 = List ("qq","ww","ee","rrr","ttt","yyy","uu","i","ooo","ppppp")
+
+val list2 = List ("ee,","ttt","p","w","ww")
+
+val filtered = list1.filter{case(word)=> !list2.contains(word)}
+
+72.	split a tuple and trim data inside in a tuple
+val map= data.map(line=>line.split(",").map(_.trim))
+
+73.	get the first row(tuple) of an RDD to an array
+Val header =  headerAndRows.first
+
+74.	filter out a record from a RDD by matching its 1st element to the 1st value of an array/list
+array: header
+RDD= rdd
+
+Val data = rdd.filter(_(0)!=header(0))
+
+75.	zip(). combine  elements(records) in 2 rdd lists as 1 element(record): rdd1.zip(rdd2)
+** here, both the elements should have same number of elements(records)
+Otherwise, exceptions are given while trying to read or print the output.
+e.g:  
+val list1 = List("dog","tiger","lion","cat")
+val list2 = List(("cat",2),("cup",5),("mouse",4),("cat",12))
+
+val zipped = list1.zip(list2)
+
+o/p: 
+Array[(String, (String, Int))] = Array((dog,(cat,2)), (cat,(cup,5)), (owl,(mouse,4)), (gnu,(cat,12)))
+
+76.	split up the header values in to each record in the data in below format: Map(id->om, topic-> scala, hits-> 120). This will generate naps to each tuple
+
+Val maps = data.map(splits=> header.zip(splits).toMap)
+
+77.	filter a map with Zipped elements
+Val result = maps. filter(s=> s("id"!= "myself"))
+
+78.	save the results to hdfs in a text file and output must be written in a single output file
+output.repartition(1).saveAsTextFile("spark7/result.txt")
+
+
+
+79.	anonymous functions: if condition
+
+Val mapper2= mapper.map(rec=> {if (rec.isempty) 0 else rec} )
+
+
+80.	 output of map() transformation is a array of sub arrays of each line.
+Eg: file1: 
+Record1: e1,e2,e3
+Record2: e1,e2,e3,e4
+Record3: e5,e6,e7
+Record4: e1,e2,e3
+
+Val mapper= file1.map(x=>x.split(","))
+
+o/p: Array(Array(record1), Array(record2),Array(record3), Array(record4))
+
+
+81.	Combine elements of 2 arrays in to one single array: using array1.union(array2)
+e.g: u have been given sample data as below code snippet
+
+val au1 = sc.parallelize(List(("a", Array(1,2)), ("b", Array(1,2))))
+
+val au2 = sc.parallelize(List(("a", Array(3)), ("b", Array(2))))
+
+aui.union(au2)
+
+
+Output:
+
+Array[(String, Array[Int])] = Array(("a", Array(1,2)), ("b", Array(1,2)), ("a", Array(3)), ("b", Array(2 )))
+
+
+
+
+82.	{ case <logic>}
+Case is use to iterate through a list or an RDD created using a list using parallelize() or makeRDD()
+
+Filter ({case})
+When filter a list out of another list, to iterate through 1 list we can use this. 
+Map({case})
+When creating a map using a list. Iterate throgh the list and set key, value pairs for each element in the list.
+Input type: List[string,string,int]
+Eg: List<string,string,int>  list= List(("ss",22), ("ff","ere",22), ("hh",22), ("jj",22))
+1st element of the list –:list(0) =("ss",22)
+2nd element of the list: list(1)= ("ff",22)
+
+To create a map by setting key, value, we have to iterate through each element and have to generate key, value for each element.
+
+Val mapper = list.map({case (key,value) => (key,value)})
+
+o/p type: list[((string, int)]
+
+83.	Count distinct no of keys : 
+Returns a map that contains all unique values in the RDD and the respective occurrence counts of those values.
+Ex: 
+List(1,2,3,4,5,6,7,8,2,4,2,1,1,1,1,1)
+val b = sc.parallelize(List(1,2,3,4,5,6,7,8,2,4,2,1,1,1,1,1))
+val countMap = b.countByValue
+
+output:
+Scala.collection.Map[Int,Long] = Map(5 -> 1, 1 -> 6, 6 -> 1, 2 -> 3, 7 -> 1, 3 -> 1, 8 -> 1, 4 -> 2)
+
+84.	Convert an RDD to a map
+pairRDD.collect().toMap
+e.g:
+List(1,2,3,4,5,6,7,8,2,4,2,1,1,1,1,1)
+val b = sc.parallelize(List(1,2,3,4,5,6,7,8,2,4,2,1,1,1,1,1))
+
+b.map(x=>(x,1)).groupByKey().map(x=>(x._1,x._2.toList.sum)).collect().toMap
+
+output:
+Scala.collection.Map[Int,Long] = Map(5 -> 1, 1 -> 6, 6 -> 1, 2 -> 3, 7 -> 1, 3 -> 1, 8 -> 1, 4 -> 2)
+
+
+85.	Define a list or a sequence as a range
+Val s = (1 to 10)
+o/p = s: scala.collection.immutable.Range.Inclusive = Range(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+**can read values as:  s(0)
+** can convert to a RDD : sc.parallelize(s)
+
+val c= ('a' to 'j')
+o/p : s: scala.collection.immutable.NumericRange.Inclusive[Char] = NumericRange(a, b, c, d, e, f, g, h, i, j)
+**can read values as:  s(0)
+** can convert to a RDD : sc.parallelize(s)
+cannot give strings as a range. Only characters.
+
+Val d = (0.0 to 2.1)
+o/p: d: Range.Partial[Double,scala.collection.immutable.NumericRange[Double]] = scala.collection.immutable.Range$Partial@11bebc75
+** cannot read values as d(0) or cannot convert to a RDD.
+
+86.	Fold() : aggregate values in a list or an rdd
+Fold(<initial value>){function}
+e.g 1: sum values in the list
+val a= List(5,4,8,6,2)
+
+val sum = a.fold(0){(x,y)=> x+y}
+
+o/p:25
+
+•	Initial value can be any value according to the requiremnt
+e.g: sum values in the list and add a constant value 100
+val a= List(5,4,8,6,2)
+
+val sum = a.fold(100){(x,y)=> x+y}
+o/p:125
+
+
+87.	Fold(): Get the minimum value of values in a list or an RDD of list
+
+e.g 2: get the minimum value of the given data range
+** here as the initial value can give any value out of the range or any value greater than max value because the function 1st consider the value given in the iitial value. If its o, the minimum would be 0.
+val a = (1 to 10)
+ val min = a.fold(1000){(acc,value)=> Math.min(acc,value)}
+
+o/p: 1
+
+** same can be done a RDD created by this list.
+
+Val rdd= sc.parallelize(1 to 10)
+val min = rdd.fold(1000){(acc,value)=> Math.min(acc,value)}
+
+88.	Fold(): count the no of elemnts in the list
+** here, initial value should be 0 bcz the count is started from 0.
+val a = (1 to 10)
+ val min = a.fold(0){(acc,value)=> acc+1}
+
+o/p: 1
+
+** same can be done a RDD created by this list.
+
+Val rdd= sc.parallelize(1 to 10)
+val min = rdd.fold(0){(acc,value)=> acc+1}
+
+89.	foldByKey() : aggregate values in the key value pair map RDD by key. This is only available for  a RDD with 2 components(as key and value)
+** same as reduceByKey
+** get 2 parameters as initial value and the function
+foldByKey(<initial value>)(function)
+
+90.	joins
+Inner Join:
+val joined = b.join(d)
+
+Full Outer Join: 
+a.fullOuterJoin(b).collect
+
+Left outer join
+val joined = b.leftOuterJoin(d)
+
+Right outer join:
+val joined = d.rightOuterJoin(b)
+
+
+91.	glom : an operation with a RDD
+** assembles an array that contains all elements of the partition end embeds it in an RDD. Each returned array contains the content of one partition.
+e.g:
+below is a RDD with 3 partitions
+val a = sc.parallelize(1 to 100, 3)
+
+a.glom.collect
+
+o/p: 
+Array[Array[Int]] = Array(Array(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33), Array(34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66), Array(67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100))
+
+**Above, 3 partitions so output is devided in to 3 arrays.
+
+
+92.	groupBy() : to group a dataset(list or RDD list)
+groupBy(function)
+
+eg: group 1 to 10 no s as even no s and odd no s.
+o/p: 
+Array[(String, Seq[Int])] = Array((even,ArrayBuffer(2,4,6,8)), (odd, ArrayBuffer(1,3,5,7)))
+
+Sol:
+
+a.groupBy(x=> {if(x%2==0) "even" else "odd"}).collect
+
+93.	keyBy(<key or a function to generate key>)
+
+** construct 2 component tuple(key-value pairs) by applying a function on each data item.the result of the function becomes the key and the original data item becomes the value of the newly created tuple.
+
+create a key value pair by making the key as the parameter of keyBy() function
+
+eg: create a key value pair map in the following format for the given list of strings.
+ Map = (key:length of the string elemnt, string element)
+
+Sol:
+val a = sc.parallelize(List("dog","tiger","lion","cat","spider","eagle"),2)
+
+val keyvalPair = val b.keyBy(a.length)
+
+keyvalPair.collect
+
+o/p: 
+Array[(Int, String)] = Array((3,dog), (5,tiger), (4,lion), (3,cat), (6,spider), (5,eagle))
+
+
+
+94.	return intersection of 2 RDD s: intersection()
+** this function only can be applied for RDD s. cannot apply for lists.
+
+generate a list of common values of the given 2 lists.
+
+e.g: 
+val x=sc.parallelize(1 to 20)
+val y =sc.parallelize(10 to 30)
+
+val common = x.intersection(y)
+common.collect
+
+o/p: Array[Int] = Array(13, 19, 15, 16, 11, 14, 17, 12, 18, 20, 10)
+
+
+95.	mapValues()
+takes the values of a RDD that consists of 2-component tuple(key-value pair tuple) and applies the provided function to transform each value. Then it forms a new 2 component tulpe(key-value pair tuple) using the key and the transformed value as the value and stores them in the new RDD.
+
+Create a new key value pair RDD with a modified value 
+
+Eg:
+Val a = sc.parallelize(List("dog","tiger","lion","cat","panther","eagle"))
+Val b = a.map(x=>(x.length,x))
+val result = b.mapValues(rec=>"x"+rec+"x")
+
+96.	reduce() : to get the sum/* or any operation done to a list of RDD
+eg.:
+val rdd = sc.parallelize(List(3,4,5))
+
+val sum = rdd.reduce((x,y)=> (x+y))
+
+o/p: 12
+
+
+97.	cogroup() : allow group nested(key value pair) listsRDD s by their keys.
+Allow grouping up to 3 key-value RDD s together using their keys.
+**seems like this function is same as groupByKey()
+Eg 1:
+Val a = sc.parallelize(List(1,2,1,3), 1)
+Val b = a.map((_, "b"))
+Val c = a.map((_, "c"))
+
+b.cogroup(c)
+
+output.
+Array[(Int, (Iterable[String], Iterable[String]))] = Array((1,(CompactBuffer(b, b),CompactBuffer(c, c))), (3,(CompactBuffer(b),CompactBuffer(c))), (2,(CompactBuffer(b),CompactBuffer(c))))
+
