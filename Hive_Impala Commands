@@ -1,0 +1,254 @@
+
+•	if data type of the file is binary, we have to save it as a sequence file
+•	external vs managed table:
+external: created in a different path.path needs to be given.
+Managed: created in the default location
+•	in HIVE, date data type is not available. We have to use String to represent date.
+•	String for char. Bigint for float.
+•	Partitioning: this applied for large files. Storing portions of data as separate tables in different locations. 1 partition contains all the records where the partition key has same value. So partitioning create different files/tables for each and every partition key. So the partition key must be a have values with high cardiality(have lots of data with same partitioning key. Eg: year)
+o	Tightly coupled relations should be partitioned by the same key.(orders and order_items)
+o	Partitioned tables are used for operations like joining. This makes the performance high. By joining only by key, doesn't have to aply operation for whole set of dat in 2 tables but only for keys. After that, by refering keys, can retrive data from tables.
+•	Bucketing: Clustering aka bucketing on the other hand, will result with a fixed number of files, since you do specify the number of buckets. What hive will do is to take the field, calculate a hash and assign a record to that bucket. But what happens if you use let's say 256 buckets and the field you're bucketing on has a low cardinality (for instance, it's a US state, so can be only 50 different values) ? You'll have 50 buckets with data, and 206 buckets with no data.(es: emp_id)
+•	Partitioning and bucketing:
+Suppose, you have a table with five columns, name, server_date, some_col3, some_col4 and some_col5. Suppose, you have partitioned the table on server_date and bucketed on name column in 10 buckets, your file structure will look something like below.
+
+server_date=xyz
+00000_0
+00001_0
+00002_0
+........
+00010_0
+Here server_date=xyz is the partition and 000 files are the buckets in each partition. Buckets are calculated based on some hash functions, so rows with name=Sandy will always go in same bucket.
+
+•	warehouse dir: default folder where all the hive tables are saved directory
+
+1.	Drop a table: drop table tablename
+2.	View description of the table: desc tablename
+3.	View formatted description of the table:
+Desc formatted tablename
+
+
+4.	Drop databse: 
+Drop database databaseName;
+
+5.	Go to/use  a particular database 
+Use databseName;
+6.	List set of databases in hive
+Show databases;
+
+---------------------- CREATE TABLE--------HIVE DDL-------------------------------------------------------------
+
+7.	create databases
+CREATE DATABASE IF NOT EXISTS cards;
+CREATE DATABASE IF NOT EXISTS retail_ods;
+CREATE DATABASE retail_edw;
+CREATE DATABASE retail_stage;
+
+8.	create table(managed)
+
+CREATE TABLE deck_of_cards (
+COLOR string,
+SUIT string,
+PIP string)
+ROW FORMAT DELIMITED FIELDS TERMINATED BY '|'
+STORED AS TEXTFILE;
+
+9.	create an external table
+CREATE EXTERNAL TABLE deck_of_cards_external (
+COLOR string,
+SUIT string,
+PIP string)
+LOCATION '/user/hive/warehouse/cards.db/deck_of_cards'
+ROW FORMAT DELIMITED FIELDS TERMINATED BY '|'
+STORED AS TEXTFILE;
+
+10.	Create a table with complex data types:array,struct,map. 
+
+Struct is used to store multiple objects. To store object types.
+
+Name|Location1,Location2,……….,Location5|Sex,Age|Father_Name:Number_of_Child
+
+Ex record:
+John|Chicago,NY,WA|male,45|Peter:4
+
+CREATE TABLE FamilyHead
+(
+Name string,
+Location ARRAY<string>,
+Sex_Age STRUCT<sex:string,age:int>,
+Farther_Info MAP<string,int>
+)
+ROW FORMAT DELIMITED
+FIELDS TERMINATED BY '|'
+COLLECTION ITEMS TERMINATED BY ','
+MAP KEYS TERMINATED BY ':';
+
+11.	include partirioning
+•	include partitioning key and partitioning criteria when creating the table
+•	Tightly coupled relations should be partitioned by the same key.(orders and order_items)
+
+CREATE TABLE orders (
+order_id int,
+order_date string,
+order_customer_id int,
+order_status string
+)
+PARTITIONED BY (order_month string)
+ROW FORMAT DELIMITED FIELDS TERMINATED BY '|'
+STORED AS TEXTFILE;
+
+
+12.	Include bucketing
+•	Cluster the table in to 16 buckets using order_id
+
+CREATE TABLE orders_bucket (
+order_id int,
+order_date string,
+order_customer_id int,
+order_status string
+)
+CLUSTERED BY (order_id) INTO 16 BUCKETS
+ROW FORMAT DELIMITED FIELDS TERMINATED BY '|'
+STORED AS TEXTFILE;
+
+** can cluster and do sort inside the bucket
+CLUSTERED BY(userid) SORTED BY(viewTime) INTO 32 BUCKETS
+
+
+
+---------------extract and load hive -------------------------------------------------------------------------------
+
+•	Data loading
+o	Pull strategy- sqoop import
+	Stp1:sqoop will connect to remote db
+	Stp2:runs as map reduce job in hadoop cluster
+	Stp3:copies data from remote db to hadoop
+o	Push strategy: copy data in local or any server in to hdfs /hive in hdfs: 
+	source system will push data to file system
+	data needs to be copied in to hdfs
+	Hive can be used to load the data. hive is one of the option for pushing data to hdfs
+	Categorries:
+•	LOAD : use to coy files from local/hdfs to hive
+•	Insert : use to copy data from one hive table to another
+•	Merge/upsert operation: no inbuilt operations for this.
+•	Major differences with relational rdbms:
+o	Cannot specify columns on insert
+o	Doesn't support update/delete
+o	Schema on read: no integrity checks on write
+o	No transactions(so no commit or redo log)
+o	Use map reduce frameworlk
+•	Not good to use sqoop in OLTP dbs. Better to do push.
+•	Push data: data loading
+o	File needs to be copied should be same type as table's storage type specified in STORED AS clause in hive table
+	Text data: stored as textfile
+	Sequence file data:stored as sequence file
+	Field and line delimiters also should be consistent
+o	All the file delimiters also should be compatible in the file and the hive table.
+o	LOAD will use file system API to copy files from local file system/hdfs to hdfs
+o	LOAD does not use mapreduce to get data in to hdfs
+o	Limitations:
+	Copy data without checking data type of columns
+o	one of key difference between hdfs/hadoop related db and traditional db is: hadoop related db s are schema on read and traditional rdbms s are schema on write.: so in hadoop, we have to makesure the file properties in hdfs side are matched with copying data(schema) which means it validate the schema when reading the written data in to the db. It will not give error when coying. So wrong data(type mismatched) is copied to hdfs.this is a limitation in hdfs side db s. but traditional dbs validate schema when write on to it.
+
+13.	Hive LOAD syntax
+•	1st have to verify the field delimiter and the input format of the hive table  we are going to copy data into. 
+Desc formatted <tablename>;
+
+LOAD DATA [LOCAL] INPATH 'filepath' [overwrite] INTO TABLE tablename [PARTITION (partcol1=val1, partcol2=val2 …)]
+
+LOCAL – to copy from local file system to hdfs referred by hive table
+OVERWRITE-old data will be lost
+PARTIRION-copy data to specific partition
+Eg: LOAD DATA LOCAL INPATH '/home/cloudera/test.txt' OVERWRITE INTO TABLE test;
+
+14.	Load the database file to local from mysql
+1.	Try the command if it does not have permission, set root permission
+a.	# mysql –u root
+b.	Select user from mysql.user;
+c.	Select user, file_priv from mysql.user; : u can see retai_dba doesn't have the file ermission
+d.	Granting permission: 
+update mysql.user set file_priv= 'Y' where user= 'retail_dba';
+commit;
+exit;
+2.	Restart the mysql
+Service mysqld restart
+Mysql –u retail_dba –p
+3.	Now type the command
+#Make sure you understand table structure, delimiter, partition etc, run mysql export command
+
+Use retail_db
+
+select * from categories into outfile '/tmp/categories01.psv' fields terminated by '|' lines terminated by '\n';
+select * from customers into outfile '/tmp/customers.psv' fields terminated by '|' lines terminated by '\n';
+select * from departments into outfile '/tmp/departments.psv' fields terminated by '|' lines terminated by '\n';
+select * from products into outfile '/tmp/products.psv' fields terminated by '|' lines terminated by '\n';
+#We cannot use orders and order_items directly as tables in hive database retail_ods are partitioned
+
+*upload a wrong format file
+Select * from categories into outfile '/tmp/categories02.csv' fields terminated by ',' lines terminated by '\n'
+
+Copy data to hive from local:
+
+load data local inpath '/tmp/categories01.psv' overwrite into table categories;
+load data local inpath '/tmp/customers.psv' overwrite into table customers;
+load data local inpath '/tmp/departments.psv' overwrite into table departments;
+load data local inpath '/tmp/products.psv' overwrite into table products;
+
+
+4.	If remove ovewrite, data just append without delete and copying.
+
+
+15.	Copy data from hdfs to hive
+LOAD data inpath '/user/cloudera/hive/load' into table departments
+
+16.	Hive insert theory – copy data from one hive table in to another table.
+•	Insert overwrite
+•	Insert in to
+o	Cannot insert 1 by one. Have to insert all
+•	Steps
+o	Set dynamic partition true: set hive.exex.dynamic.partirion=true;
+o	Set this to non strict: set hive.exex.dynamic.partirion.mode=nonstrict;
+o	Control the size of the file: hive.exec.dynamic.partition.pernode=100;
+o	No of dynamic partitions: hive.exec.dynamic.partirions=1000;
+o	Max created files; hive.exec.max.created.files=100000
+o	Empty partitions: hive.error.on.empty.partition=FALSE;
+•	Run query:
+o	Verify properties of the target hive table
+Hive
+Desc formatted products;
+
+insert overwrite table retail_ods.orders partition (order_month)
+select order_id, order_date, order_customer_id, order_status,
+substr(order_date, 1, 7) order_month from retail_stage.orders_stage;
+
+
+insert overwrite table order_items partition (order_month)
+select oi.order_item_id, oi.order_item_order_id, o.order_date,
+oi.order_item_product_id, oi.order_item_quantity, oi.order_item_subtotal,
+oi.order_item_product_price, substr(o.order_date, 1, 7)
+order_month from retail_stage.order_items oi join retail_stage.orders_stage o
+on oi.order_item_order_id = o.order_id;
+
+
+-----------------------------------------impala--------------------------------------------------------
+
+
+1.	Go to impala shell
+Impala-shell;
+
+2.	Show tables:
+Show TABLES;
+
+3.	 commands: same as HIVE
+Accessible to all hive tables.
+4.	Save the result in to a csv file: using hue.
+a.	Edit query->impala
+b.	Copy the query in the query editor and execute
+c.	Click save to csv file button.
+d.	Seperately, cretae a csv file from hue file browser.
+e.	Save the data to that file via 'save to csv' option
+5.	by default impala doesn't know its metadata has been updated. Hence first make impala aware about metadata change and update the same.
+
+Show tables;
+Invalidate metadata;
+
