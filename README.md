@@ -1,8 +1,8 @@
-# Hadoop-Spark-Projects
+# CCA-175-Hadoop-Sparks-Hands-On-Guide
 
 Below mentioned features are covered in this hands-on projects/exercises.
 
-Data Ingest:
+##Data Ingest:
 
     •	Import data into HDFS from MySQL database using Sqoop.
   
