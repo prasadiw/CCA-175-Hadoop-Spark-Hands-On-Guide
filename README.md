@@ -33,6 +33,7 @@ Data Ingest:
   •	Use Hadoop File System (FS) commands to load data into and out of HDFS.
   
   
+  
 
 Transform, Stage, Store: Writing and running Spark Applications using Python and Scala.
 
