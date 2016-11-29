@@ -391,7 +391,9 @@ sqoop import \
 
 hadoop fs -cat /user/cloudera/sqoop_merge/departments_delta/part*
 
---Merge
+--Merge: 
+merge data in the departments_delta directory in to the existing departments directory and merged data should be stored in the departments_stage directory. 
+
 sqoop merge --merge-key department_id \
   --new-data /user/cloudera/sqoop_merge/departments_delta \
   --onto /user/cloudera/sqoop_merge/departments \
@@ -410,5 +412,4 @@ hadoop fs -mv /user/cloudera/sqoop_merge/departments_stage /user/cloudera/sqoop_
 --Validate that original directory have merged data
 hadoop fs -cat /user/cloudera/sqoop_merge/departments/part*
 
---Merge process ends
 
