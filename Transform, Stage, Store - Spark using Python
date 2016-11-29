@@ -1,8 +1,8 @@
-1.	Launch pythan spark interface
+1.Launch pythan spark interface
 pyspark
 
-2.	Exit: ctrl+d
-3.	Run select * query in hiveContext()
+2.Exit: ctrl+d
+3.hiveContext() : running select all query
 Stp1 : import SQLContext and hiveContext and all the packages
 from pyspark.sql import SQLContext
 from pyspark.sql import HiveContext
@@ -13,14 +13,14 @@ sqlContext = HiveContext(sc)
 Stp3: create spark RDD to collect all data from departments table in to hiveContext  instance
 depts = sqlContext.sql("select * from departments")
 
-Stp4: write for loop to iterate through RDD list and collect
+Stp4: write a for loop to iterate through RDD list and collect
 **pythan doesn’t have {} to indent. Use space to indent
 for rec in depts.collect():
 	print(rec)
 	<more logic for the same for loop>
 **Hit enter without space if you want to execute the for loop
 
-4.	Connect to a remote jdbc datatabs eserver to write queries on SQLContext and HiveContext
+4.Connect to a remote jdbc datatabs eserver to write queries on SQLContext and HiveContext
 Stp1: set classpath
 Way 1: run pyspark with driver class path
 pyspark - -driver-class-path "/usr/share/javamysql-connector-java.jar"
@@ -50,36 +50,36 @@ for rec in df.collect()
 count records in departments table:
 df.count()
 
-5.	Reading a text file in hdfs. Creating the RDD
+5.Reading a text file in hdfs. Creating the RDD
 dataRDD = sc.textFile("/user/cloudera/sqoop_import_departments")
 read:
 for i data.collect()
 	print(i)
 
-6.	Saving data to a text file in hdfs
+6.Saving data to a text file in hdfs
 dataRDD.saveAsTextFile("/user/cloudera/pySpark/departments ")
 
-7.	Declaring and assign values to a variable
+7.Declaring and assign values to a variable
 
 Str = "hello,word,how,are,you"
 
-8.	Split the string. Out put will be an array of strings.
+8.Split the string. Out put will be an array of strings.
 Str.split(",")
 
 o/p: ['hello','word','how','are','you']
 
-9.	If you want to split the string to 2 elements in the array by making 1st string as 1 elemnt and rest as the 2nd elemnt
+9.If you want to split the string to 2 elements in the array by making 1st string as 1 elemnt and rest as the 2nd elemnt
 
 Str.split(",",1)
 o/p: ['hello', 'word,how,are,you']
 
-10.	If you want to split the string to 3 elements in the array by making 1st  and 2nd strings as 1st and 2nd elemnts  and rest as the 2nd elemnt
+10.If you want to split the string to 3 elements in the array by making 1st  and 2nd strings as 1st and 2nd elemnts  and rest as the 2nd elemnt
 
 Str.split(",",2)
 o/p: ['hello', 'world', 'how,are,you']
 
-11.	Map function:  lanbda function is executed inside the map transformation.
-12.	Create a map RDD with null key and whole record as value
+11.Map function:  lanbda function is executed inside the map transformation.
+12.Create a map RDD with null key and whole record as value
 Mapper = dataRDD.map(lambda x: (None,x))
 
 Print mapper:
@@ -99,7 +99,7 @@ o/p:
 (None, u'13,science')
 (None, u'14,Engineering')
 
-13.	Create a map RDD with key value pair split by (",", 1)
+13.Create a map RDD with key value pair split by (",", 1)
 *here, the  tuple is created by seperating the data set in to 2 where the 1st element split by  "," is one value and the rest of the record as the 2nd value.
 Mapper = dataRDD.map(lambda x: tuple(x.split(",",1)))
 
@@ -127,17 +127,17 @@ data = sc.textFile("/user/cloudera/sqoop_import_departments")
 read:
 for i data.collect()
 	print(i)
-14.	Lambda: represent anonymous  function. 
+14.Lambda: represent anonymous  function. 
 (Lambda x , (<return type of the transformation which is going to apply>))
 
-15.	Sequence file data is saved in binary format
+15.Sequence file data is saved in binary format
 
-16.	Save as sequence file:
+16.Save as sequence file:
 dataRDD.map(lambda x: (None,x)).saveAsSequenceFile("/user/cloudera/pyspark/departmentsSeq")
 
 dataRDD.map(lambda x: tuple(x.split(",",1))). saveAsSequenceFile("/user/cloudera/pyspark/departmentsSeq2")
 
-17.	Read a sequence file
+17.Read a sequence file
 Don’t need to specify the type of key, value combination of the output. It will be automatically done by the pyspark.
 **to save, the outut file should have data with key-value pair format. Otherwise, it will give an exception.
 
@@ -152,7 +152,7 @@ For i data.collect():
 	Print(line)
 
 
-18.	Common save as a method to save data in to hdfs as any type of file.
+18.Common save as a method to save data in to hdfs as any type of file.
 (text/seq/etc)
 Eg: save as sequence file
 
@@ -162,7 +162,7 @@ dataRDD.map(lambda x: tuple(x.split(",",1))).saveAsAPIHadoopFile(path, "org.apac
 
 here, the key also written as a text bcz its read as a string. When writing we have to specify as string.
 
-19.	Common read method to sread data from hdfs as any type of file.
+19.Common read method to sread data from hdfs as any type of file.
 (text/seq/etc)
 Eg: save as sequence file
 
@@ -170,7 +170,7 @@ Format: rdd.map(lambda rec: <anonymous function>).NewAPIHadoopFile(path, <class 
 
 dataRDD.map(lambda x: tuple(x.split(",",1))).saveAsAPIHadoopFile(path, "org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat",keyClass="org.apache.hadoop.io.IntWritable",valueClass="org.apache.hadoop.io.Text")
 
-20.	Read data from hive context
+20.Read data from hive context
 Stp1 : imort hive context
 from pysark.sql imort HiveContext
 
@@ -178,7 +178,7 @@ sqlContext = HiveContext(sc)
 
 **before run this, verify the table in hive
 
-•	write query to default database
+•write query to default database
 data = sqlContext.sql("select * from departments")
 
 after running this query, a collection is cretaed with the result.
@@ -244,6 +244,7 @@ for r in datamap.collect();
 	verify o/p:
 for r in wordcount.collect();
 	print(r)
+
 
 ------------------------Joining  2 data sets--------------------------------------------------------------
 •	Its reccomended to join with the follow format:
