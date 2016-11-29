@@ -31,9 +31,8 @@ Data Ingest:
   •	Ingest real-time and near real time (NRT) streaming data into HDFS using Flume.
   
   •	Use Hadoop File System (FS) commands to load data into and out of HDFS.
-  
-  
-  
+
+
 
 Transform, Stage, Store: Writing and running Spark Applications using Python and Scala.
 
@@ -62,3 +61,5 @@ Data Analysis: Use DDL aspects of Hive Impala, basic DML aspects of hive Impala 
   •	Use hive partitioning to improve query performance of tables in the Hive metastore.
   
   •	Evolve an Avro schema by changing JSON files.
+
+
