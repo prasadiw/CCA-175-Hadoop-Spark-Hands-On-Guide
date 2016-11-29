@@ -1,6 +1,6 @@
 # Hadoop-Spark-Projects
 
-Below mentined features are covered in this hands-on projects/exercises.
+Below mentioned features are covered in this hands-on projects/exercises.
 
 Data Ingest:
   •	Import data into HDFS from MySQL database using Sqoop.
