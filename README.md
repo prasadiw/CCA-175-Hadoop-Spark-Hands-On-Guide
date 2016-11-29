@@ -32,8 +32,10 @@ Data Ingest:
   
   •	Use Hadoop File System (FS) commands to load data into and out of HDFS.
   
+  
 
 Transform, Stage, Store: Writing and running Spark Applications using Python and Scala.
+
   •	Load data from HDFS and store results back to HDFS using Spark.
   
   •	Join different datasets together using Spark.
@@ -44,8 +46,10 @@ Transform, Stage, Store: Writing and running Spark Applications using Python and
   
   •	Produce ranked or sorted data from a given dataset using Spark.
   
+  
 
-Data Analysis: Use DDL aspects of Hive Impala, basic DML aspects of hive Impala as well as concepts around Avro-tools. 
+Data Analysis: Use DDL aspects of Hive Impala, basic DML aspects of hive Impala as well as concepts around Avro-tools.
+
   •	Hive DDL: Read and/or create a table in the Hive metastore in a given schema.
   
   •	Hive DML: Load and Insert data into Hive tables.
