@@ -171,6 +171,7 @@ TBLPROPERTIES ('avro.schema.literal'='{
 -------------------------- partitioning in Hive with Avro file format------------------------------------------------------------
 
 Partitioning table with data in avro file format
+
 7.	Get data from orders where the order date is in 2014/01 month
 •	Column names are given in the avro schema. So in the hive cretae table command, we don't have to specify the column names.
 •	Partitions should not be defined in the avro schema file.
@@ -182,8 +183,7 @@ Desc orders;
 
 Select order_status, count(1) from orders where from_unixtime(case(substr(order_date, 1, 10) as int)) like '2014-01%' group by order_status;
 
-*create orders_part_avro.avsc according to the itversity video.(82, time 10m)
-cp sqoop_import_orders.avsc orders_part.avsc
+create orders_part_avro.avsc
 •	Since we are partitoning the table, we should add partition table in the schema and the schema structure is different.
 •	Should not specify the partition column in the schema
 Content of orders_part_avro.avc file:
@@ -254,7 +254,7 @@ So need dynamic partitioning.
 -- Drop table and recreate to test dynamic insert
 -- Dynamic insert
 set hive.exec.dynamic.partition.mode=nonstrict;
-•	Set  no of partitioning to 1000 if give errors related to that.
+•	Set  no of partitioning to 1000 if give errors related to the numeber of partitions.
 
 insert into table orders_part_avro partition (order_month)
 select order_id, order_date, order_customer_id, order_status,
