@@ -2,7 +2,7 @@
 
 Below mentioned features are covered in this hands-on projects/exercises.
 
-##Data Ingest:
+###Data Ingest:
 
     •	Import data into HDFS from MySQL database using Sqoop.
   
@@ -34,7 +34,7 @@ Below mentioned features are covered in this hands-on projects/exercises.
 
 
 
-Transform, Stage, Store: Writing and running Spark Applications using Python and Scala.
+###Transform, Stage, Store: Writing and running Spark Applications using Python and Scala.
 
     •	Load data from HDFS and store results back to HDFS using Spark.
   
@@ -48,7 +48,7 @@ Transform, Stage, Store: Writing and running Spark Applications using Python and
   
   
 
-Data Analysis: Use DDL aspects of Hive Impala, basic DML aspects of hive Impala as well as concepts around Avro-tools.
+###Data Analysis: Use DDL aspects of Hive Impala, basic DML aspects of hive Impala as well as concepts around Avro-tools.
 
     •	Hive DDL: Read and/or create a table in the Hive metastore in a given schema.
   
