@@ -1,4 +1,4 @@
-
+#Hive Metastore
 •	if data type of the file is binary, we have to save it as a sequence file
 •	external vs managed table:
 external: created in a different path.path needs to be given.
