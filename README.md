@@ -1,4 +1,4 @@
-# CCA-175-Hadoop-Sparks-Hands-On-Guide
+# CCA 175 - Hadoop Sparks Hands-On Guide
 
 Below mentioned features are covered in this hands-on projects/exercises.
 
