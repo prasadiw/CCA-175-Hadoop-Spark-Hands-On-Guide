@@ -34,6 +34,10 @@ sqoop job --create orders_join_insert \
   --split-by order_id \
   --outdir java_files
 
+
+##Go to pySpark terminal:
+pySpark
+
 ##filter the orders which are not in CANCELED state
 dataRDD=sc.textFile("/user/cloudera/orders_join")
 filteredRDD=dataRDD.filter(lambda x: x.split("|")[3] != "CANCELED")
