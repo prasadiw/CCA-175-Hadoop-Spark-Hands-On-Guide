@@ -1,4 +1,5 @@
-###Project Requirement: Import joined orders and order_Items data set in to hdfs and extract data according to the requirements mentioned below for the orders which are not Cancelled:
+###Project Requirement: Import joined orders and order_Items data set in to hdfs and extract data according to the requirements mentioned
+below for the orders which are not Cancelled:
 #1.Find the average revenue per day
 #2.Find the customer which generated the maximum revenue per each day
 #3.store the imported joined data set in a hive table which is partitoned by order month
