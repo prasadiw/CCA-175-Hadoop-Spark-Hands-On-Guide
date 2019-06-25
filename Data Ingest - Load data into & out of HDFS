@@ -1,5 +1,5 @@
 1.	Check the currently available data in hdfs directory : 
-hdfs dfs –
+hdfs dfs –ls
 
 2.	readthe data from a file 
 hdfs dfs –cat categories/part-m-00000
