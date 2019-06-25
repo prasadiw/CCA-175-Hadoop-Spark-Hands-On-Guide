@@ -1,4 +1,4 @@
-•	Sqoop pulls data from mysql db to hdfs/hadoop vide versa
+•	Sqoop pulls data from mysql db to hdfs/hadoop vise versa
 •	Sqoop is a data load tool
 •	Incremental exports cannot be done using sqoop.
 •	By default sqoop copies data with the comma as delimiter.
@@ -19,7 +19,8 @@ sqoop list-tables \
   --password cloudera
 
 4.	Write a query to retrieve data set from mysql
-•	The eval tool allows users to quickly run simple SQL queries against a database; results are printed to the console. This allows users to preview their import queries to ensure they import the data they expect.
+•	The eval tool allows users to quickly run simple SQL queries against a database; results are printed to the console. 
+This allows users to preview their import queries to ensure they import the data they expect.
 
 sqoop eval \
   --connect "jdbc:mysql://quickstart.cloudera:3306/retail_db" \
@@ -65,9 +66,18 @@ Verify result in hive and hdfs:
 
 7.	Number of mappers and split-by
 We can specify the number of map tasks (parallel processes) to use to perform the import by using the -m or --num-mappers argument.
-When performing parallel imports, Sqoop needs a criterion by which it can split the workload. Sqoop uses a splitting column to split the workload. By default, Sqoop will identify the primary key column (if present) in a table and use it as the splitting column. The low and high values for the splitting column are retrieved from the database, and the map tasks operate on evenly-sized components of the total range. For example, if you had a table with a primary key column of id whose minimum value was 0 and maximum value was 1000, and Sqoop was directed to use 4 tasks, Sqoop would run four processes which each execute SQL statements of the form SELECT * FROM sometable WHERE id >= lo AND id < hi, with (lo, hi) set to (0, 250), (250, 500), (500, 750), and (750, 1001) in the different tasks.
+When performing parallel imports, Sqoop needs a criterion by which it can split the workload. Sqoop uses a splitting column to split 
+the workload. By default, Sqoop will identify the primary key column (if present) in a table and use it as the splitting column. 
+The low and high values for the splitting column are retrieved from the database, and the map tasks operate on evenly-sized components 
+of the total range. For example, if you had a table with a primary key column of id whose minimum value was 0 and maximum value was 1000,
+and Sqoop was directed to use 4 tasks, Sqoop would run four processes which each execute SQL statements of the form 
+SELECT * FROM sometable WHERE id >= lo AND id < hi, with (lo, hi) set to (0, 250), (250, 500), (500, 750), and (750, 1001) in the 
+different tasks.
 
-If the actual values for the primary key are not uniformly distributed across its range, then this can result in unbalanced tasks. You should explicitly choose a different column with the --split-by argument. For example, --split-by employee_id. Sqoop cannot currently split on multi-column indices. If your table has no index column, or has a multi-column key, then you must also manually choose a splitting column.
+If the actual values for the primary key are not uniformly distributed across its range, then this can result in unbalanced tasks. 
+You should explicitly choose a different column with the --split-by argument. For example, --split-by employee_id. Sqoop cannot currently
+split on multi-column indices. If your table has no index column, or has a multi-column key, then you must also manually choose a 
+splitting column.
 
 
 8.	 Boundary Query and columns
@@ -83,13 +93,16 @@ sqoop import \
   --columns department_id,department_name
 
 
-•	Boundary-query: this use to specify  boundaries for creating splits. In above example, default boundry column would be the primary key(department_id) and the in the output file, records ehere department_id inbetween 2 and 8 are selected as input.
+•	Boundary-query: this use to specify  boundaries for creating splits. In above example, default boundry column would be the 
+primary key(department_id) and the in the output file, records ehere department_id inbetween 2 and 8 are selected as input.
 
 •	Retrieve only specific columns
   --columns department_id,department_name
 
 9.	When importing a free-form query, you must specify a destination directory with --target-dir.
-If you want to import the results of a query in parallel, then each map task will need to execute a copy of the query, with results partitioned by bounding conditions inferred by Sqoop. Your query must include the token $CONDITIONS which each Sqoop process will replace with a unique condition expression. You must also select a splitting column with --split-by.
+If you want to import the results of a query in parallel, then each map task will need to execute a copy of the query, with results 
+partitioned by bounding conditions inferred by Sqoop. Your query must include the token $CONDITIONS which each Sqoop process will 
+replace with a unique condition expression. You must also select a splitting column with --split-by.
 For example:
 $ sqoop import \
  --query 'SELECT a.*, b.* FROM a JOIN b on (a.id == b.id) WHERE $CONDITIONS' \
@@ -99,7 +112,9 @@ $ sqoop import \
 --query 'SELECT a.*, b.* FROM a JOIN b on (a.id == b.id) WHERE $CONDITIONS' \
 -m 1 --target-dir /user/foo/joinresults
 
-If you are issuing the query wrapped with double quotes (" "), you will have to use \$CONDITIONS instead of just $CONDITIONS to disallow your shell from treating it as a shell variable. For example, a double quoted query may look like: "SELECT * FROM x WHERE a='foo' AND \$CONDITIONS"
+If you are issuing the query wrapped with double quotes (" "), you will have to use \$CONDITIONS instead of just $CONDITIONS to
+disallow your shell from treating it as a shell variable. For example, a double quoted query may look like: 
+"SELECT * FROM x WHERE a='foo' AND \$CONDITIONS"
 
 •	query and split-by
 sqoop import \
@@ -112,13 +127,17 @@ sqoop import \
   --num-mappers 4
 
 
-Sqoop import --connect "jdbc:mysql://quickstart.cloudera:3306/retail_db" --username=retail_dba --password=cloudera --query="select * from orders JOIN order_items on order_id=order_item_order_id where orders.order_status='PENDING' AND \$CONDITIONS" -m1 -target-dir=/user/cloudera/sqoop_import/sqoop_job --fields-terminated-by '|' --lines-terminated-by '\n'
+Sqoop import --connect "jdbc:mysql://quickstart.cloudera:3306/retail_db" --username=retail_dba --password=cloudera 
+--query="select * from orders JOIN order_items on order_id=order_item_order_id where orders.order_status='PENDING' AND \$CONDITIONS" -m1
+-target-dir=/user/cloudera/sqoop_import/sqoop_job --fields-terminated-by '|' --lines-terminated-by '\n'
 
 10.	Copying into existing table or directory (append)
 -- Customizing number of threads (num-mappers)
 -- Changing delimiter
-	- delimiter should map(same) with what it is defined in the actual mysql db. Should check before write the sqoop import command. By default sqoop copies data with the comma as delimiter.
---out-dir: if we do not specify this out –dir, it will defaultly create a java file for each import. When default is specified, it is created in this specified dir.
+	- delimiter should map(same) with what it is defined in the actual mysql db. Should check before write the sqoop import command.
+	By default sqoop copies data with the comma as delimiter.
+--out-dir: if we do not specify this out –dir, it will defaultly create a java file for each import. When default is specified, it is 
+created in this specified dir.
 
 sqoop import \
   --connect "jdbc:mysql://quickstart.cloudera:3306/retail_db" \
@@ -184,7 +203,9 @@ sqoop job --list
 sqoop job --show sqoop_job
 
 sqoop job --exec sqoop_job
-sqoop job --create myjob2 -- import --connect "jdbc:mysql://quickstart.cloudera:3306/retail_db" --username=retail_dba --password=cloudera --query="select * from orders JOIN order_items on order_id=order_item_order_id where orders.order_status='PENDING' AND \$CONDITIONS" -m1 -target-dir=/user/cloudera/sqoop_import/sqoop_job --fields-terminated-by '|' --lines-terminated-by '\n'
+sqoop job --create myjob2 -- import --connect "jdbc:mysql://quickstart.cloudera:3306/retail_db" --username=retail_dba --password=cloudera
+--query="select * from orders JOIN order_items on order_id=order_item_order_id where orders.order_status='PENDING' AND \$CONDITIONS" -m1
+-target-dir=/user/cloudera/sqoop_import/sqoop_job --fields-terminated-by '|' --lines-terminated-by '\n'
 
 -----------------------------------------Sqoop Export-------------------------------------------------------------------
 Sqoop export: basics
@@ -208,15 +229,20 @@ sqoop export --connect "jdbc:mysql://quickstart.cloudera:3306/retail_db" \
 
 15.	Sqoop export : upsert/merge to mysql db
 
-•	--update-key is used to tell on what column data needs to be looked up in the relational database (mysql) table to perform update of already existing data. Can use a rimary key/unique key. If table has a composite key, can give it by comma seperators.
+•	--update-key is used to tell on what column data needs to be looked up in the relational database (mysql) table to perform update
+of already existing data. Can use a rimary key/unique key. If table has a composite key, can give it by comma seperators.
 •	--update-mode is used to insert non-existing data
 •	If --update-mode is not set to allowinsert then data will only be updating matched data, unmatched data will be ignored.
-•	--input-null-string is used to tell how nulls are stored in alpha-numeric fields in HDFS. If a field in a row in HDFS have string nvl, then null will be inserted in the database table
-•	--input-null-non-string is used to tell how nulls are stored in numeric fields in HDFS. If a field in a row in HDFS have numeric value -1, then null will be inserted in the database table
-•	If you try do update and insert in to a  table in without a primary key in mysql from hfds data using –allowinsert, the update record is inserted as a new records but not updated. 
+•	--input-null-string is used to tell how nulls are stored in alpha-numeric fields in HDFS. If a field in a row in HDFS have string
+nvl, then null will be inserted in the database table
+•	--input-null-non-string is used to tell how nulls are stored in numeric fields in HDFS. If a field in a row in HDFS have numeric
+value -1, then null will be inserted in the database table
+•	If you try do update and insert in to a  table in without a primary key in mysql from hfds data using –allowinsert, the update 
+record is inserted as a new records but not updated. 
 •	--staging table <staging table name> : the table where data will be staged before inserted
 •	--clear-staging-table : 
-•	Delimiters should be specified as per the hdfs exporting directoy, if hdfs data is different than mysql default delimiters. (eg: --fields-terminated-by '|' since myswl default field termination char is ',')
+•	Delimiters should be specified as per the hdfs exporting directoy, if hdfs data is different than mysql default delimiters. (eg:
+--fields-terminated-by '|' since myswl default field termination char is ',')
 insert and update data
 sqoop export --connect "jdbc:mysql://quickstart.cloudera:3306/retail_db" \
   --username retail_dba \
@@ -250,7 +276,8 @@ sqoop export --connect "jdbc:mysql://quickstart.cloudera:3306/retail_db" \
 Eg: --enclosed-by \"  
 o/p: "<record>"
 --input-escaped-by <char> :
-We have to compatible with the exporting hdfs data delimiters. Then only hadoop framework can understand correct columns to insert/update in to mysql rdbms
+We have to compatible with the exporting hdfs data delimiters. Then only hadoop framework can understand correct columns to insert/update
+in to mysql rdbms
 
 
 --------------------------------------------------Hive Import/Export--------------------------------------------------------------------
@@ -322,12 +349,12 @@ sqoop import-all-tables
 --Input-null-string "" \
 --input-null-non-string  -999 \
 
-21.	File formats can use during sqoop import.
+21.	File formats that can be used during sqoop import.
 •	--as-avrodatafile	Imports data to Avro Data Files. Same as json file
 --as-sequencefile	Imports data to SequenceFiles. Binary data
 --as-textfile	Imports data as plain text (default)
 --as-parquetfile	Imports data to Parquet Files. Coulumness format data storage.
-•	Load data in bnary format in to hdfs means load data using sequence file format in to hdfs.
+•	Load data in binary format in to hdfs means load data using sequence file format in to hdfs.
 
 22.	Sqoop jobs
 •	Can create for sqoop imports.
@@ -339,7 +366,9 @@ sqoop import-all-tables
 
 
 23.	Sqoop merge
-The merge tool allows you to combine two datasets where entries in one dataset should overwrite entries of an older dataset. For example, an incremental import run in last-modified mode will generate multiple datasets in HDFS where successively newer data appears in each dataset. The merge tool will "flatten" two datasets into one, taking the newest available records for each primary key.
+The merge tool allows you to combine two datasets where entries in one dataset should overwrite entries of an older dataset. For example,
+an incremental import run in last-modified mode will generate multiple datasets in HDFS where successively newer data appears in each 
+dataset. The merge tool will "flatten" two datasets into one, taking the newest available records for each primary key.
 
 eg: 
 --Merge process begins
@@ -392,7 +421,8 @@ sqoop import \
 hadoop fs -cat /user/cloudera/sqoop_merge/departments_delta/part*
 
 --Merge: 
-merge data in the departments_delta directory in to the existing departments directory and merged data should be stored in the departments_stage directory. 
+merge data in the departments_delta directory in to the existing departments directory and merged data should be stored in the 
+departments_stage directory. 
 
 sqoop merge --merge-key department_id \
   --new-data /user/cloudera/sqoop_merge/departments_delta \
@@ -411,5 +441,3 @@ hadoop fs -mv /user/cloudera/sqoop_merge/departments_stage /user/cloudera/sqoop_
 
 --Validate that original directory have merged data
 hadoop fs -cat /user/cloudera/sqoop_merge/departments/part*
-
-
