@@ -1,5 +1,11 @@
 # CCA 175 - Hadoop & Sparks Hands-On Guide
 
+•Technologies: Sqoop, Flume, HDFS, Spark (Python & Scala), Hive, Impala, Avro schema, SQL, MySQL in Windows and Linux environments.
+Key Features:
+•	Data Ingest: Transferring data between an external system and the CDH5 cluster, merge/update data sets, write sqoop-jobs using Sqoop in order to satisfy various use cases. Perform RT/NRT data streaming into HDFS using Flume.
+•	Transform, Stage and Store: Data loading and performing appropriate logical operations (joining, aggregating, filtering, sorting, ranking) to satisfy required tasks using Spark (Python & Scala). 
+•	Data Analysis: Perform data analysis by applying proper DDL, DML operations to a given schema in the hive meta-store using Hive & Impala. Perform basic Avro-tools operations on a data set.
+
 Below mentioned features are covered in this hands-on projects/exercises.
 
 ###Data Ingest:
